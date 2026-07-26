@@ -20,7 +20,9 @@ const chapterCounts = new Map(
     ] as const),
   ),
 );
-const categories = ["政治评论", "文学小说", "散文随笔"] as const;
+const categories = [...new Set(books.map((book) => book.data.category))].sort(
+  (a, b) => a.localeCompare(b, "zh-CN"),
+);
 const visualBooks = [
   featured,
   ...books.filter((book) => book.id !== featured?.id),
@@ -174,7 +176,12 @@ const visualBooks = [
         </div>
 
         <div class="library-empty" data-library-empty>
-          没有找到相符的书。换一个关键词，或查看全部馆藏。
+          <p class="eyebrow">Nothing here</p>
+          <h3>这一格书架是空的。</h3>
+          <p>换一个关键词，或者回到全部馆藏。</p>
+          <button class="button button--ghost" type="button" data-library-reset>
+            查看全部馆藏
+          </button>
         </div>
       </div>
     </section>
@@ -198,6 +205,7 @@ const visualBooks = [
       const empty = document.querySelector("[data-library-empty]");
       const resultCount = document.querySelector("[data-result-count]");
       const filters = Array.from(document.querySelectorAll("[data-filter]"));
+      const resetButton = document.querySelector("[data-library-reset]");
       let activeFilter = "all";
 
       const readJson = (key, fallback) => {
@@ -268,6 +276,16 @@ const visualBooks = [
           );
           applyFilters();
         });
+      });
+
+      resetButton.addEventListener("click", () => {
+        search.value = "";
+        activeFilter = "all";
+        filters.forEach((item) =>
+          item.setAttribute("aria-pressed", String(item.dataset.filter === "all")),
+        );
+        applyFilters();
+        search.focus();
       });
     })();
   </script>

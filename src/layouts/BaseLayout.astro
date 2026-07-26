@@ -32,9 +32,9 @@ const isReaderPage = bodyClasses.includes("reader-body");
 const lightThemeColor = isAboutPage
   ? "#030817"
   : isReaderPage
-    ? "#fbf8f0"
+    ? "#f9fcfd"
     : "#eaf1f5";
-const darkThemeColor = isReaderPage ? "#050b16" : "#030817";
+const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
 ---
 
 <!doctype html>
@@ -50,19 +50,46 @@ const darkThemeColor = isReaderPage ? "#050b16" : "#030817";
     <title>{pageTitle}</title>
     <script is:inline define:vars={{ lightThemeColor, darkThemeColor }}>
       (() => {
-        try {
-          const saved = localStorage.getItem("shiyue-theme");
-          const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-          const theme = saved || (systemDark ? "dark" : "light");
-          document.documentElement.dataset.theme = theme;
+        const paintMeta = (theme) => {
           document
             .querySelector('meta[name="theme-color"]')
             ?.setAttribute(
               "content",
               theme === "dark" ? darkThemeColor : lightThemeColor,
             );
+        };
+
+        try {
+          const media = window.matchMedia("(prefers-color-scheme: dark)");
+          const resolve = (pref) =>
+            pref === "light" || pref === "dark"
+              ? pref
+              : media.matches
+                ? "dark"
+                : "light";
+          const apply = (pref) => {
+            const theme = resolve(pref);
+            document.documentElement.dataset.theme = theme;
+            document.documentElement.dataset.themePref = pref;
+            paintMeta(theme);
+          };
+          const storedPref = () => {
+            const saved = localStorage.getItem("shiyue-theme");
+            return saved === "light" || saved === "dark" ? saved : "system";
+          };
+
+          apply(storedPref());
+
+          media.addEventListener("change", () => {
+            try {
+              if (storedPref() === "system") {
+                apply("system");
+              }
+            } catch {}
+          });
         } catch {
           document.documentElement.dataset.theme = "light";
+          document.documentElement.dataset.themePref = "system";
         }
       })();
     </script>
@@ -75,30 +102,54 @@ const darkThemeColor = isReaderPage ? "#050b16" : "#030817";
 
     <script is:inline define:vars={{ lightThemeColor, darkThemeColor }}>
       (() => {
-        const setTheme = (theme) => {
-          document.documentElement.dataset.theme = theme;
+        const root = document.documentElement;
+        const order = ["system", "light", "dark"];
+
+        const resolve = (pref) => {
+          if (pref === "light" || pref === "dark") return pref;
+          try {
+            return window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          } catch {
+            return "light";
+          }
+        };
+
+        const syncChoices = (pref) => {
+          document.querySelectorAll("[data-theme-choice]").forEach((button) => {
+            button.setAttribute(
+              "aria-pressed",
+              String(button.dataset.themeChoice === pref),
+            );
+          });
+        };
+
+        const setTheme = (choice) => {
+          const pref = choice === "light" || choice === "dark" ? choice : "system";
+          try {
+            if (pref === "system") {
+              localStorage.removeItem("shiyue-theme");
+            } else {
+              localStorage.setItem("shiyue-theme", pref);
+            }
+          } catch {}
+          const theme = resolve(pref);
+          root.dataset.theme = theme;
+          root.dataset.themePref = pref;
           document
             .querySelector('meta[name="theme-color"]')
             ?.setAttribute(
               "content",
               theme === "dark" ? darkThemeColor : lightThemeColor,
             );
-          try {
-            localStorage.setItem("shiyue-theme", theme);
-          } catch {}
-          document.querySelectorAll("[data-theme-choice]").forEach((button) => {
-            button.setAttribute(
-              "aria-pressed",
-              String(button.dataset.themeChoice === theme),
-            );
-          });
+          syncChoices(pref);
         };
 
         document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
           button.addEventListener("click", () => {
-            const next =
-              document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-            setTheme(next);
+            const index = Math.max(order.indexOf(root.dataset.themePref), 0);
+            setTheme(order[(index + 1) % order.length]);
           });
         });
 
@@ -106,14 +157,16 @@ const darkThemeColor = isReaderPage ? "#050b16" : "#030817";
           button.addEventListener("click", () => setTheme(button.dataset.themeChoice));
         });
 
-        document
-          .querySelectorAll("[data-theme-choice]")
-          .forEach((button) =>
-            button.setAttribute(
-              "aria-pressed",
-              String(button.dataset.themeChoice === document.documentElement.dataset.theme),
-            ),
-          );
+        syncChoices(root.dataset.themePref || "system");
+
+        const markReady = () => root.classList.add("theme-ready");
+        if (typeof requestAnimationFrame === "function") {
+          requestAnimationFrame(() => requestAnimationFrame(markReady));
+          // 后台标签页里 rAF 可能一直不触发，用定时器兜底（markReady 幂等）
+          setTimeout(markReady, 300);
+        } else {
+          markReady();
+        }
       })();
     </script>
   </body>

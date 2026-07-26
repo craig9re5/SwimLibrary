@@ -3,11 +3,20 @@ import { Image } from "astro:assets";
 import swimCover from "../assets/images/swim-cover.png";
 import Icon from "../components/Icon.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { siteConfig } from "../site.config";
 
-const lyricLines = [
+interface LyricLine {
+  text: string;
+  active: boolean;
+  repeat?: boolean;
+}
+
+const swimVideoUrl = "https://www.bilibili.com/video/BV1CN4y1u7Ub/";
+
+const lyricLines: LyricLine[] = [
   { text: "何億通り 奪い合って ひかり射した", active: false },
   { text: "何億光年 今日に向かって放浪を", active: true },
-  { text: "何億通り 奪い合って ひかり射した", active: false },
+  { text: "何億通り 奪い合って ひかり射した", active: false, repeat: true },
   { text: "悩んでる 君の好きな方へ 泳いで", active: false },
 ];
 
@@ -22,11 +31,10 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
   title="关于 · Swim"
   description="在《Swim》的蓝色里，留下一小段关于本站之外的话。"
   overlayHeader
-  hideFooter
   bodyClass="about-page"
 >
   <main id="main-content" class="about" tabindex="-1">
-    <section class="swim-scene" aria-labelledby="about-title">
+    <section class="swim-scene" aria-label="《SWIM (MyGO!!!!! ver)》封面与歌词">
       <div class="swim-scene__backdrop" aria-hidden="true">
         <Image
           class="swim-scene__backdrop-image"
@@ -40,8 +48,6 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
           decoding="async"
         />
       </div>
-
-      <h1 id="about-title" class="visually-hidden">关于本站</h1>
 
       <div class="swim-scene__stage">
         <figure class="swim-cover">
@@ -64,10 +70,10 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
             </span>
             <a
               class="swim-cover__play"
-              href="https://www.bilibili.com/video/BV1CN4y1u7Ub/"
+              href={swimVideoUrl}
               aria-label="在哔哩哔哩播放《SWIM (MyGO!!!!! ver)》"
             >
-              <span class="swim-cover__play-label" aria-hidden="true">Play</span>
+              <span class="swim-cover__play-label" aria-hidden="true">B 站播放</span>
               <span class="swim-cover__play-icon" aria-hidden="true">
                 <Icon name="bilibili" size={22} strokeWidth={1.7} />
               </span>
@@ -101,9 +107,15 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
                         class="swim-lyrics__line"
                         type="button"
                         aria-current={line.active ? "true" : undefined}
+                        aria-label={line.repeat ? `反复 · ${line.text}` : undefined}
                         tabindex="-1"
                         data-lyric-line
                       >
+                        {line.repeat && (
+                          <span class="swim-lyrics__repeat" aria-hidden="true">
+                            ↻
+                          </span>
+                        )}
                         {line.text}
                       </button>
                     </li>
@@ -113,6 +125,36 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
             </blockquote>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="about-note" aria-labelledby="about-title">
+      <div class="about-note__inner">
+        <p class="about-note__eyebrow">About this library</p>
+        <h1 id="about-title" class="about-note__title">关于{siteConfig.name}</h1>
+        <p class="about-note__lede">{siteConfig.description}在书架上按分类翻找，读完整的章节正文，再把主题、字号与行宽调成自己顺眼的样子。</p>
+
+        <dl class="about-note__list">
+          <div class="about-note__row">
+            <dt class="about-note__term">藏书来源</dt>
+            <dd class="about-note__detail">每本书的来源与公开传播许可，随书记录在 front matter 的 <code class="about-note__code">rights</code> 字段中。</dd>
+          </div>
+
+          <div class="about-note__row">
+            <dt class="about-note__term">技术</dt>
+            <dd class="about-note__detail">Astro 在构建期把 Markdown 生成为静态页面，托管在 GitHub Pages。没有后端，没有账号，也没有追踪。</dd>
+          </div>
+
+          <div class="about-note__row">
+            <dt class="about-note__term">数据</dt>
+            <dd class="about-note__detail">收藏与阅读进度只写入你自己浏览器的 localStorage，不会上传。换一台设备，它们就不在了。</dd>
+          </div>
+
+          <div class="about-note__row">
+            <dt class="about-note__term">本页素材</dt>
+            <dd class="about-note__detail">封面与歌词来自《SWIM (MyGO!!!!! ver)》，<a class="about-note__link" href={swimVideoUrl}>原视频在哔哩哔哩</a>。</dd>
+          </div>
+        </dl>
       </div>
     </section>
   </main>
@@ -283,14 +325,16 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
     box-shadow: 0 0 0 4px rgba(3, 8, 23, 0.78);
   }
 
+  :global(body.about-page .site-footer) {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+
   .about {
     min-height: 100svh;
     scroll-margin-top: var(--header-height);
     background: #030817;
     color: #f8faff;
-    font-family:
-      "Yu Gothic", YuGothic, "Hiragino Kaku Gothic ProN", "Noto Sans JP",
-      sans-serif;
+    font-family: var(--font-sans);
     outline: none;
   }
 
@@ -303,6 +347,9 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
       calc(var(--header-height) + clamp(28px, 5vh, 64px))
       clamp(24px, 5.5vw, 96px)
       clamp(38px, 6vh, 78px);
+    font-family:
+      "Yu Gothic", YuGothic, "Hiragino Kaku Gothic ProN", "Noto Sans JP",
+      sans-serif;
     isolation: isolate;
   }
 
@@ -486,7 +533,7 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
   }
 
   .swim-cover__play:focus-visible {
-    width: 112px;
+    width: 124px;
     border-color: rgba(255, 255, 255, 0.5);
     background: rgba(0, 174, 236, 0.88);
     box-shadow:
@@ -495,7 +542,7 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
   }
 
   .swim-cover__play:focus-visible .swim-cover__play-label {
-    max-width: 42px;
+    max-width: 68px;
     margin-right: 10px;
     opacity: 1;
     transform: none;
@@ -507,7 +554,7 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
 
   @media (hover: hover) and (pointer: fine) {
     .swim-cover__play:hover {
-      width: 112px;
+      width: 124px;
       border-color: rgba(255, 255, 255, 0.5);
       background: rgba(0, 174, 236, 0.88);
       box-shadow:
@@ -516,7 +563,7 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
     }
 
     .swim-cover__play:hover .swim-cover__play-label {
-      max-width: 42px;
+      max-width: 68px;
       margin-right: 10px;
       opacity: 1;
       transform: none;
@@ -654,15 +701,132 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
     text-shadow: 0 16px 54px rgba(175, 210, 255, 0.26);
   }
 
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
+  .swim-lyrics__repeat {
+    display: flex;
+    margin-bottom: clamp(6px, 0.9vh, 10px);
+    align-items: center;
+    gap: 10px;
+    color: rgba(219, 228, 242, 0.72);
+    font-family: var(--font-serif);
+    font-size: clamp(12px, 0.3em, 17px);
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+
+  .swim-lyrics__repeat::after {
     height: 1px;
-    padding: 0;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    max-width: 96px;
+    flex: 1 1 auto;
+    background: linear-gradient(90deg, currentColor, transparent);
+    content: "";
+  }
+
+  .about-note {
+    position: relative;
+    z-index: 1;
+    padding:
+      clamp(56px, 9vh, 104px)
+      clamp(24px, 5.5vw, 96px)
+      clamp(60px, 10vh, 118px);
+    border-top: 1px solid rgba(219, 228, 242, 0.1);
+    background: #030817;
+  }
+
+  .about-note__inner {
+    width: min(100%, 720px);
+    margin-inline: auto;
+  }
+
+  .about-note__eyebrow {
+    display: flex;
+    margin: 0 0 22px;
+    align-items: center;
+    gap: 12px;
+    color: rgba(219, 228, 242, 0.72);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .about-note__eyebrow::before {
+    width: 28px;
+    height: 1px;
+    background: currentColor;
+    content: "";
+  }
+
+  .about-note__title {
+    margin: 0 0 clamp(18px, 2.6vh, 28px);
+    color: #f2f6ff;
+    font-family: var(--font-serif);
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.16;
+  }
+
+  .about-note__lede {
+    margin: 0;
+    color: #dbe4f2;
+    font-size: clamp(16px, 1.6vw, 19px);
+    line-height: 1.9;
+  }
+
+  .about-note__list {
+    display: grid;
+    margin: clamp(34px, 5vh, 52px) 0 0;
+    gap: 14px;
+  }
+
+  .about-note__row {
+    display: grid;
+    padding: 22px 26px;
+    grid-template-columns: minmax(0, 116px) minmax(0, 1fr);
+    align-items: baseline;
+    gap: 6px 26px;
+    border: 1px solid rgba(219, 228, 242, 0.14);
+    border-left: 2px solid rgba(127, 169, 245, 0.5);
+    border-radius: 3px 22px 22px 3px;
+    background: rgba(219, 228, 242, 0.04);
+  }
+
+  .about-note__term {
+    margin: 0;
+    color: #dbe4f2;
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.7;
+  }
+
+  .about-note__detail {
+    margin: 0;
+    color: rgba(219, 228, 242, 0.72);
+    font-size: 15px;
+    line-height: 1.85;
+  }
+
+  .about-note__code {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(127, 169, 245, 0.16);
+    color: #dbe4f2;
+    font-size: 0.92em;
+  }
+
+  .about-note__link {
+    border-bottom: 1px solid rgba(167, 198, 255, 0.45);
+    color: #a7c6ff;
+    text-decoration: none;
+    transition: color 200ms ease, border-color 200ms ease;
+  }
+
+  .about-note__link:hover {
+    border-bottom-color: #c9dcff;
+    color: #c9dcff;
   }
 
   @keyframes backdrop-settle {
@@ -752,8 +916,8 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
     }
 
     .swim-cover__play {
-      width: 44px;
-      height: 44px;
+      height: auto;
+      min-height: 44px;
       padding-inline: 11px;
     }
 
@@ -786,6 +950,40 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
       padding-block: 12px;
       font-size: clamp(1.65rem, 7.4vw, 2.4rem);
       line-height: 1.24;
+    }
+
+    .about-note {
+      padding-inline: 20px;
+    }
+
+    .about-note__row {
+      padding: 18px 20px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+    }
+  }
+
+  @media (hover: none), (pointer: coarse) {
+    .swim-cover__play {
+      width: auto;
+      padding-inline: 14px 16px;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .swim-cover__play:focus-visible {
+      width: auto;
+    }
+
+    .swim-cover__play-label {
+      max-width: none;
+      margin-right: 0;
+      opacity: 1;
+      transform: none;
+    }
+
+    .swim-cover__play:focus-visible .swim-cover__play-label {
+      margin-right: 0;
     }
   }
 
@@ -830,7 +1028,8 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
 
     .swim-cover__image,
     .swim-cover__play,
-    .swim-cover__play-label {
+    .swim-cover__play-label,
+    .about-note__link {
       transition: none;
     }
   }

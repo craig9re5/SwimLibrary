@@ -53,7 +53,8 @@ const {
   next,
   chapterIndex,
 } = Astro.props;
-const { Content } = await render(chapter);
+const { Content, headings } = await render(chapter);
+const sections = headings.filter((heading) => heading.depth === 2);
 const chapterSlug = getChapterSlug(chapter);
 const bookHref = withBase(`books/${book.data.slug}/`);
 const chapterHref = (entry: ChapterEntry) =>
@@ -127,6 +128,15 @@ const chapterHref = (entry: ChapterEntry) =>
               >
                 {entry.data.title}
               </a>
+              {entry.id === chapter.id && sections.length > 0 && (
+                <ol class="reader-toc__sections">
+                  {sections.map((section) => (
+                    <li>
+                      <a href={`#${section.slug}`}>{section.text}</a>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </li>
           ))
         }
@@ -198,7 +208,7 @@ const chapterHref = (entry: ChapterEntry) =>
           <span>字号</span>
           <output data-font-size-output>19 px</output>
         </span>
-        <input data-reader-font-size type="range" min="16" max="24" step="1" value="19" />
+        <input data-reader-font-size type="range" min="17" max="24" step="1" value="19" />
       </label>
 
       <label class="range-control">
@@ -206,21 +216,22 @@ const chapterHref = (entry: ChapterEntry) =>
           <span>行高</span>
           <output data-line-height-output>1.85</output>
         </span>
-        <input data-reader-line-height type="range" min="1.5" max="2.2" step="0.05" value="1.85" />
+        <input data-reader-line-height type="range" min="1.65" max="2.2" step="0.05" value="1.85" />
       </label>
 
       <label class="range-control">
         <span class="range-control__label">
-          <span>栏宽</span>
-          <output data-reader-width-output>70 字符</output>
+          <span>每行字数</span>
+          <output data-reader-width-output>36 字/行</output>
         </span>
-        <input data-reader-width type="range" min="48" max="82" step="2" value="70" />
+        <input data-reader-width type="range" min="26" max="42" step="1" value="36" />
       </label>
 
       <div>
-        <span class="range-control__label">页面主题</span>
-        <div class="theme-choice">
-          <button type="button" data-theme-choice="light" aria-pressed="false">暖纸</button>
+        <span class="range-control__label">阅读主题</span>
+        <div class="theme-choice theme-choice--3">
+          <button type="button" data-theme-choice="system" aria-pressed="false">跟随系统</button>
+          <button type="button" data-theme-choice="light" aria-pressed="false">日读</button>
           <button type="button" data-theme-choice="dark" aria-pressed="false">夜读</button>
         </div>
       </div>
@@ -238,13 +249,24 @@ const chapterHref = (entry: ChapterEntry) =>
       <nav class="reader-dialog-toc" aria-label="移动端章节目录">
         {
           chapters.map((entry) => (
-            <a
-              href={chapterHref(entry)}
-              aria-current={entry.id === chapter.id ? "page" : undefined}
-            >
-              <span>{String(entry.data.order).padStart(2, "0")}</span>
-              {entry.data.title}
-            </a>
+            <Fragment>
+              <a
+                href={chapterHref(entry)}
+                aria-current={entry.id === chapter.id ? "page" : undefined}
+              >
+                <span>{String(entry.data.order).padStart(2, "0")}</span>
+                {entry.data.title}
+              </a>
+              {entry.id === chapter.id && sections.length > 0 && (
+                <ol class="reader-toc__sections">
+                  {sections.map((section) => (
+                    <li>
+                      <a href={`#${section.slug}`}>{section.text}</a>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </Fragment>
           ))
         }
       </nav>
@@ -264,6 +286,8 @@ const chapterHref = (entry: ChapterEntry) =>
     }}
   >
     (() => {
+      if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+
       const progressKey = "shiyue-progress";
       const settingsKey = "shiyue-reader-settings";
       const shell = document.querySelector("[data-reader-shell]");
@@ -275,6 +299,7 @@ const chapterHref = (entry: ChapterEntry) =>
       const widthInput = document.querySelector("[data-reader-width]");
       let lastScroll = window.scrollY;
       let ticking = false;
+      let accum = 0;
 
       const readJson = (key, fallback) => {
         try {
@@ -287,14 +312,23 @@ const chapterHref = (entry: ChapterEntry) =>
       const settings = {
         fontSize: 19,
         lineHeight: 1.85,
-        width: 70,
+        width: 36,
         ...readJson(settingsKey, {}),
       };
+
+      // 迁移旧设置：栏宽曾以 ch 为单位保存（48..82），现在改为「字/行」（26..42）
+      settings.fontSize = Math.min(24, Math.max(17, Math.round(Number(settings.fontSize) || 19)));
+      settings.lineHeight = Math.min(2.2, Math.max(1.65, Number(settings.lineHeight) || 1.85));
+      settings.width = Number(settings.width) || 36;
+      settings.width = Math.min(
+        42,
+        Math.max(26, Math.round(settings.width > 42 ? settings.width / 2 : settings.width)),
+      );
 
       const applySettings = () => {
         shell.style.setProperty("--reader-font-size", settings.fontSize + "px");
         shell.style.setProperty("--reader-line-height", String(settings.lineHeight));
-        shell.style.setProperty("--reader-width", settings.width + "ch");
+        shell.style.setProperty("--reader-measure", String(settings.width));
         fontInput.value = settings.fontSize;
         lineInput.value = settings.lineHeight;
         widthInput.value = settings.width;
@@ -303,7 +337,7 @@ const chapterHref = (entry: ChapterEntry) =>
         document.querySelector("[data-line-height-output]").textContent =
           Number(settings.lineHeight).toFixed(2);
         document.querySelector("[data-reader-width-output]").textContent =
-          settings.width + " 字符";
+          settings.width + " 字/行";
       };
 
       const saveSettings = () => {
@@ -340,14 +374,38 @@ const chapterHref = (entry: ChapterEntry) =>
         button.addEventListener("click", () => button.closest("dialog")?.close());
       });
 
-      const saveProgress = (chapterProgress, overallProgress) => {
+      document.querySelectorAll("dialog").forEach((dialog) => {
+        dialog.addEventListener("click", (event) => {
+          if (event.target === dialog) dialog.close();
+        });
+      });
+
+      // 缓存正文几何，避免滚动时每帧强制同步重排
+      const geom = { top: 0, height: 1 };
+      const measure = () => {
+        geom.top = article.getBoundingClientRect().top + window.scrollY;
+        geom.height = Math.max(1, article.offsetHeight);
+      };
+
+      // 进度写入节流：滚动停止 600ms 后落盘，切后台或离开页面时立即落盘
+      let pendingProgress = null;
+      let flushTimer = 0;
+
+      const flushProgress = () => {
+        if (flushTimer) {
+          clearTimeout(flushTimer);
+          flushTimer = 0;
+        }
+        if (!pendingProgress) return;
+        const snapshot = pendingProgress;
+        pendingProgress = null;
         const allProgress = readJson(progressKey, {});
         allProgress[bookSlug] = {
           bookTitle,
           chapterTitle,
           chapter: chapterSlug,
-          progress: overallProgress,
-          chapterProgress,
+          progress: snapshot.overallProgress,
+          chapterProgress: snapshot.chapterProgress,
           href: "read/" + bookSlug + "/" + chapterSlug + "/",
           updatedAt: Date.now(),
         };
@@ -356,21 +414,42 @@ const chapterHref = (entry: ChapterEntry) =>
         } catch {}
       };
 
+      const saveProgress = (chapterProgress, overallProgress) => {
+        pendingProgress = { chapterProgress, overallProgress };
+        if (flushTimer) clearTimeout(flushTimer);
+        flushTimer = setTimeout(flushProgress, 600);
+      };
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) flushProgress();
+      });
+
+      window.addEventListener("pagehide", flushProgress);
+
       const updateReadingState = () => {
-        const articleTop = article.offsetTop;
-        const readable = Math.max(1, article.offsetHeight - window.innerHeight * 0.72);
+        const y = window.scrollY;
         const chapterProgress = Math.max(
           0,
-          Math.min(100, ((window.scrollY - articleTop) / readable) * 100),
+          Math.min(100, ((y + window.innerHeight - geom.top) / geom.height) * 100),
         );
         const overallProgress =
           ((chapterIndex + chapterProgress / 100) / chapterCount) * 100;
         progressBar.style.setProperty("--reading-progress", chapterProgress + "%");
-        header.dataset.scrolled = String(window.scrollY > 30);
-        header.dataset.hidden = String(
-          window.scrollY > 180 && window.scrollY > lastScroll + 4,
-        );
-        lastScroll = window.scrollY;
+
+        const delta = y - lastScroll;
+        if ((delta > 0) !== (accum > 0)) accum = 0;
+        accum += delta;
+        header.dataset.scrolled = String(y > 30);
+        if (y <= 180) {
+          header.dataset.hidden = "false";
+          accum = 0;
+        } else if (accum > 72) {
+          header.dataset.hidden = "true";
+        } else if (accum < -40) {
+          header.dataset.hidden = "false";
+        }
+        lastScroll = y;
+
         saveProgress(chapterProgress, overallProgress);
         ticking = false;
       };
@@ -385,6 +464,24 @@ const chapterHref = (entry: ChapterEntry) =>
         },
         { passive: true },
       );
+
+      window.addEventListener("resize", () => {
+        measure();
+        updateReadingState();
+      });
+
+      if ("ResizeObserver" in window) {
+        new ResizeObserver(() => {
+          measure();
+          updateReadingState();
+        }).observe(article);
+      }
+
+      // 键盘焦点落到隐藏的顶栏上时强制展开
+      header.addEventListener("focusin", () => {
+        header.dataset.hidden = "false";
+        accum = 0;
+      });
 
       document.addEventListener("keydown", (event) => {
         if (
@@ -405,18 +502,22 @@ const chapterHref = (entry: ChapterEntry) =>
       });
 
       applySettings();
+      measure();
 
       const saved = readJson(progressKey, {})[bookSlug];
       if (
         saved?.chapter === chapterSlug &&
         saved.chapterProgress > 2 &&
+        saved.chapterProgress < 97 &&
         !window.location.hash
       ) {
         requestAnimationFrame(() => {
-          const articleTop = article.offsetTop;
-          const readable = Math.max(1, article.offsetHeight - window.innerHeight * 0.72);
+          measure();
           window.scrollTo({
-            top: articleTop + readable * (saved.chapterProgress / 100),
+            top:
+              geom.top +
+              geom.height * (saved.chapterProgress / 100) -
+              window.innerHeight,
             behavior: "auto",
           });
           updateReadingState();
