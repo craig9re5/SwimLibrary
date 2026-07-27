@@ -28,11 +28,7 @@ const searchText = [
   data-category={book.data.category}
   data-search-text={searchText}
 >
-  <a
-    class="book-card__cover-link"
-    href={href}
-    aria-label={`查看《${book.data.title}》`}
-  >
+  <a class="book-card__cover-link" href={href} tabindex="-1" aria-hidden="true">
     <BookCover
       title={book.data.title}
       author={book.data.author}

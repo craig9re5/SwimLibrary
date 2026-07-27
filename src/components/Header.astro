@@ -8,6 +8,12 @@ interface Props {
 }
 
 const { overlay = false } = Astro.props;
+
+const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
+
+const currentPath = normalizePath(Astro.url.pathname);
+const isHome = currentPath === normalizePath(withBase());
+const isAbout = currentPath === normalizePath(withBase("about/"));
 ---
 
 <header class:list={["site-header", { "site-header--overlay": overlay }]}>
@@ -21,12 +27,13 @@ const { overlay = false } = Astro.props;
     </a>
 
     <nav class="site-nav" aria-label="主导航">
-      <a class="site-nav__link" href={withBase("#library")}>馆藏</a>
-      <a class="site-nav__link" href={withBase("about/")}>关于</a>
+      <a class="site-nav__link" href={withBase("#library")} aria-current={isHome ? "location" : undefined}>馆藏</a>
+      <a class="site-nav__link" href={withBase("about/")} aria-current={isAbout ? "page" : undefined}>关于</a>
       <a class="icon-button" href={withBase("#library-search")} aria-label="搜索馆藏">
         <Icon name="search" size={19} />
       </a>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="切换明暗主题">
+      <button class="icon-button" type="button" data-theme-toggle aria-label="切换主题：跟随系统 / 浅色 / 深色">
+        <span class="theme-icon--auto"><Icon name="monitor" size={19} /></span>
         <span class="theme-icon--moon"><Icon name="moon" size={19} /></span>
         <span class="theme-icon--sun"><Icon name="sun" size={19} /></span>
       </button>
