@@ -97,11 +97,6 @@ const updatedLabel = new Intl.DateTimeFormat("zh-CN", {
             <dd>{updatedLabel}</dd>
           </div>
         </dl>
-
-        <p class="book-detail__rights">
-          <span class="book-detail__rights-label">来源与许可</span>{" "}
-          <span class="book-detail__rights-text">{book.data.rights}</span>
-        </p>
       </article>
 
       <section class="chapter-list" aria-labelledby="chapter-list-title">
@@ -176,27 +171,3 @@ const updatedLabel = new Intl.DateTimeFormat("zh-CN", {
     })();
   </script>
 </BaseLayout>
-
-<style>
-  .book-detail__rights {
-    max-width: 48em;
-    margin: 20px 0 0;
-    padding: 19px 0 0;
-    border-top: 1px solid var(--line);
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.7;
-  }
-
-  .book-detail__rights-label {
-    margin-right: 0.8em;
-    color: var(--muted);
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    white-space: nowrap;
-  }
-
-  .book-detail__rights-text {
-    overflow-wrap: anywhere;
-  }
-</style>
