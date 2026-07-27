@@ -322,25 +322,15 @@ svg {
   background: rgba(255, 255, 255, 0.12);
 }
 
-.theme-icon--sun,
-.theme-icon--auto {
+.theme-icon--sun {
   display: none;
 }
 
-:root[data-theme-pref="system"] .theme-icon--auto {
-  display: block;
-}
-
-:root[data-theme-pref="system"] .theme-icon--moon,
-:root[data-theme-pref="dark"] .theme-icon--moon {
+:root[data-theme="dark"] .theme-icon--moon {
   display: none;
 }
 
-:root[data-theme-pref="dark"] .theme-icon--sun {
-  display: block;
-}
-
-:root[data-theme-pref="system"] .reader-header .theme-icon--moon {
+:root[data-theme="dark"] .theme-icon--sun {
   display: block;
 }
 
