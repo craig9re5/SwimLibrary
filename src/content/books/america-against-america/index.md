@@ -13,7 +13,6 @@ updated: 2026-07-18
 featured: true
 accent: "#7A332C"
 coverLabel: 美国 · 观察
-rights: 文本整理自 zealotCE/America-Against-America，著作权归原作者及相关权利人
 ---
 
 作者在六个月的美国学术访问中走访城市、大学、政府部门与社会组织，以历史、社会和文化条件为框架记录美国政治与社会管理的实际运行。

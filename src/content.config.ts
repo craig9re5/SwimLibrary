@@ -48,7 +48,6 @@ const books = defineCollection({
           "accent 的相对亮度须 ≤0.17（配奶白墨 #fff8e9）或 ≥0.24（配深墨 #251e15）；介于两者之间时两种墨色都达不到 4.5:1",
       }),
     coverLabel: z.string().min(1),
-    rights: z.string().min(1),
   }),
 });
 

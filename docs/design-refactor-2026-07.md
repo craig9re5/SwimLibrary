@@ -113,7 +113,6 @@ relativeLuminance(accent) <= 0.1706 → 奶白墨 #fff8e9
 - **容器宽度统一。** `.book-detail` 原为 `min(1380px, 100vw-64px)` = 1376px，而全站 `--shell` = 1240px，导致详情内容比页头品牌**左移 68px**。现统一为 `var(--shell)`，实测错位 **−68px → 0**。
 - **目录行主次翻正。** 轨道原为 `44 / 418.75 / 697.92 / 20` px——13px 灰色摘要列比 19px 衬线标题列**宽 1.67 倍**。现为 `40 / 552.375 / 408.292 / 20`。
 - **hover 不再触发重排。** 原先同时动画 `padding-inline`（布局属性，每帧重算 4 条网格轨道、可能重新断行）和 `transform`，左边缘 +7px 而右边缘 −2px。现改为 `box-shadow: inset 3px 0 0` + `translateX(6px)`，`transition` 里已移除 `padding`。
-- **恢复 `rights` 展示。** 该字段在 `content.config.ts` 是必填、在 `README.md` 有明文要求，但 commit `9182eff` 把它从页面删掉了——形成 schema / 文档 / 页面三方漂移。现以脚注形式放在 facts 之下（**不放进 facts 网格**，因为像「待后续整理」这种占位值出现在显眼的事实位很难看）。
 - `.book-detail__facts dt` 从 11px/0.12em 改为 12px/0.08em（11px 中文笔画会并；0.12em 施加在 2–4 字中文标签上像被拆开）。
 
 ### 1.6 阅读器
@@ -129,7 +128,7 @@ relativeLuminance(accent) <= 0.1706 → 奶白墨 #fff8e9
 
 ### 1.7 About 页
 
-- 原先**整页文字只有**：导航、一个 `visually-hidden` 的「关于本站」、「SWIM (MyGO!!!!! ver)」、「Play」和四行日文歌词——访客点「关于」学不到关于这座图书馆的任何信息。现在 Swim 场景保留为满屏首屏（实测仍精确占 900px），下方新增真正的「关于」内容区（本站是什么 / 藏书来源 / 技术 / 数据 / 本页素材），`<h1>` 已可见，全文档只有一个 `<h1>`、无悬空 `aria-labelledby`。实测页面高度 900（=视口，零滚动）→ **1796**。
+- Swim 场景保留为满屏首屏，下方「关于」内容区仅保留左上角可见的 `<h1>`，全文档只有一个 `<h1>`、无悬空 `aria-labelledby`。
 - **恢复页脚。** 这原是全站唯一 `hideFooter` 的页面，叠加"手机端隐藏导航文字链"后，手机访客落到 /about 就**没有任何出口**。
 - 字体作用域修正：日文 sans 收缩到 Swim 场景内，新增的中文段落使用站内 `--font-sans` / `--font-serif`。
 - **播放控件在触屏上的可发现性。** 展开露出文字的行为原本只在 `@media (hover: hover) and (pointer: fine)` 或 `:focus-visible` 下生效，手机上只剩一个圆圈，而里面的 `bilibili` 图标是小电视轮廓（**没有播放三角**）。现在触屏默认就是带文字的胶囊，文案从孤立英文 `Play` 改为**「B 站播放」**。
@@ -137,7 +136,7 @@ relativeLuminance(accent) <= 0.1706 → 奶白墨 #fff8e9
 
 ### 1.8 主题切换
 
-从二态改为**三态**（契约见下，供后续开发对齐）：
+页头保持清晰的**明暗二态切换**，阅读器设置仍提供「跟随系统」（契约见下，供后续开发对齐）：
 
 | 项 | 值 |
 |---|---|
@@ -145,11 +144,11 @@ relativeLuminance(accent) <= 0.1706 → 奶白墨 #fff8e9
 | `html[data-theme]` | 已解析主题，恒为 `"light"` \| `"dark"`（所有 CSS 仍按此选择） |
 | `html[data-theme-pref]` | `"system"` \| `"light"` \| `"dark"` |
 | `[data-theme-choice="system\|light\|dark"]` | 显式设置器；`aria-pressed` 对比 **pref** 而非已解析主题 |
-| `[data-theme-toggle]` | 循环 `system → light → dark → system` |
+| `[data-theme-toggle]` | 根据已解析主题在 `light ↔ dark` 间切换，并保存显式选择 |
 | `html.theme-ready` | 首帧后添加，供 `html.theme-ready …` 的过渡使用（有 300ms 定时器兜底，防后台标签页 rAF 不触发） |
 
-- 原先点一次就**永久锁死**，UI 里没有任何回到"跟随系统"的入口；且**从不监听** `matchMedia` 的 `change`，即使从未点过、系统在页面打开期间切换也不响应。两者都已修。
-- 主题图标改由 `[data-theme-pref]` 驱动，并新增 `monitor` 图标——否则三态里"跟随系统 + 系统为浅色"与"浅色"显示同一个图标，第一次点击看起来没反应。实测：system → monitor、light → moon、dark → sun，恒有且仅有一个可见。
+- 首次访问仍跟随系统，且监听 `matchMedia` 的 `change`；阅读器设置可随时显式回到「跟随系统」。
+- 页头不呈现偏好状态，只显示下一步动作：当前为浅色时显示月亮并标注「切换到夜间模式」，当前为深色时显示太阳并标注「切换到日间模式」。点击后保存明确的浅色或深色偏好，不再出现含义不直观的电脑图标。
 - 主题过渡只作用于 `background-color` / `border-color` / `color`（多段渐变不可插值，加了也是硬切）。
 
 ### 1.9 交互状态与可访问性
@@ -158,7 +157,7 @@ relativeLuminance(accent) <= 0.1706 → 奶白墨 #fff8e9
   - `.filter-button` → 四态（默认 / hover 未选中 / 选中 / 选中+hover）。原先鼠标移到未选中项上，屏幕上会同时出现两个实心蓝按钮。
   - `.reader-toc a` → hover 轻反馈 / `aria-current` 强标记（3px 左标 + `font-weight: 600`）。原先划过目录时每一项都像"当前章节"。
   - `.reader-toc__sections a:hover` 曾被 `.reader-toc a:hover:not(...)`（特异性 0,3,1 > 0,2,1）压过，已改为 `.reader-toc .reader-toc__sections a:hover` 并置于源序更后。
-- **主导航补 `aria-current`**（关于 → `page`，馆藏 → `location`，后者指向首页内锚点而非独立文档），配套的当前页下划线样式。用 `withBase()` 比较，兼容 GitHub Pages 子路径。
+- **主导航补 `aria-current`**（关于 → `page`，馆藏 → `location`，后者指向首页内锚点而非独立文档），配套的当前页文字高亮样式。用 `withBase()` 比较，兼容 GitHub Pages 子路径。
 - 移动端 `.filter-button` 38px → **44px**（原先低于触摸下限，而旁边的搜索框是 54px）。
 - **移动端导航不再消失。** 原先 ≤720px 把 `.site-nav__link` 整个 `display: none` 且**全站没有汉堡菜单**。现改为图标化收窄（`padding-inline: 10px` / 13px），实测 390px 视口下页头内还余 **53px**，320px 最小宽度也能容纳。
 - 「继续阅读」卡片内四行原先挤成一坨——`.continue-reading p`（特异性 0,1,1）静默覆盖 `.eyebrow`（0,1,0），把 25px 下边距清零、12px 改成 13px。实测间距 **0 / 4 / 0 px → 10 / 6 / 14 px**。
@@ -182,17 +181,13 @@ relativeLuminance(accent) <= 0.1706 → 奶白墨 #fff8e9
 
 ---
 
-## 2. 关键决策：请勿回退
+## 2. 关键决策
 
 1. **品牌方向 = Swim 蓝。** 见 §0。暖米/朱砂不是"原始设计"。
 2. **深色装饰带 ≠ 深色主题阅读面。** `hero` / `site-footer` / `statement` 区块 / About 页 / `html.fixed-dark-page` 的 `#030817` 是**有意保留**的近黑装饰带（在浅色主题下也存在），与深色主题的阅读面 `--paper: #0b1220` 是两回事，**不要统一**。前者承载的是短促的展示性文字，后者要承载长文阅读。
-3. **About 页第 1、3 行完全相同的日文歌词是原曲反复，不是复制粘贴 bug。** git 历史看起来像失误（初版 3 行互不重复，换成真实歌词时扩到 4 行并出现逐字副本），所以每轮代码审查都会有人报出来。已在该行加 `repeat: true`、`aria-hidden` 的 `↻` 视觉标记和 `aria-label="反复 · …"`，让屏幕阅读器和键盘用户也能区分这两行。**不要"修复"。**
+3. **About 页第 1、3 行完全相同的日文歌词是原曲反复，不是复制粘贴 bug。** 该行保留 `repeat: true` 和 `aria-label="反复 · …"` 供辅助技术区分，不再显示额外的视觉标记。**不要"修复"。**
 4. **书卡采用「封面保留链接但移出 tab 顺序与无障碍树」，而不是拉伸伪元素。** 拉伸链接（`.book-card__title a::after { inset: 0 }`）会让书名/作者/摘要**无法用鼠标选中**——对读书站点，复制书名是很自然的操作。当前方案同样把 tab stop 减半、无障碍树里每本书只出现一次，且文字可选中。实测每卡 2 个 `<a>`、**1 个可聚焦**、1 个 `aria-hidden`。
 5. **`aria-hidden="true"` 配 `tabindex="-1"`** 用在封面链接上是有意的冗余链接消除模式，不是错误。
-
-### 一条被推翻的评审结论
-
-评审阶段曾提出「移动端 `.book-detail__cover { position: static }` 会让封面光晕的包含块退回 `.book-page`、按整页尺寸铺开成一大团色雾」。**实测不成立**：探针的 `offsetParent` 仍是封面本身，5% 偏移落在 168px（封面基准）而非 185px（页面基准）——因为该元素带 `.reveal` 类，其 `transform` 依然在建立包含块。**无需改动。**
 
 ---
 
@@ -322,7 +317,7 @@ node node_modules/astro/bin/astro.mjs build
 
 ```
 src/styles/global.css                     （主要）
-src/layouts/BaseLayout.astro              （主题三态）
+src/layouts/BaseLayout.astro              （主题偏好与明暗切换）
 src/components/{Header,Footer,BookCard,BookCover,Icon}.astro
 src/pages/index.astro
 src/pages/about.astro

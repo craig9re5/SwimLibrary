@@ -80,7 +80,6 @@ updated: 2026-07-17
 featured: false
 accent: "#9E4B3F"
 coverLabel: 示例 · 书名
-rights: 版权来源或公开传播许可说明
 ---
 ```
 
@@ -130,7 +129,3 @@ pnpm preview
 - Astro/TypeScript 代码中应基于 `import.meta.env.BASE_URL` 生成站内 URL。
 - Markdown 正文中的图片优先使用相对于当前内容文件的路径；迁移旧书稿时应检查图片链接。
 - 部署后至少验证首页、书籍详情、章节直达、刷新章节页面及静态资源加载。
-
-## 公开内容说明
-
-GitHub Pages 没有访问控制。进入仓库或构建产物的书籍正文与图片都应视为公开、可访问和可下载；提交内容前请确认书籍、译文与封面均具有公开传播权限，并保留必要的来源和许可信息。
