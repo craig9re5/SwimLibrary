@@ -136,7 +136,7 @@ relativeLuminance(accent) <= 0.1706 → 奶白墨 #fff8e9
 
 ### 1.8 主题切换
 
-从二态改为**三态**（契约见下，供后续开发对齐）：
+页头保持清晰的**明暗二态切换**，阅读器设置仍提供「跟随系统」（契约见下，供后续开发对齐）：
 
 | 项 | 值 |
 |---|---|
@@ -144,11 +144,11 @@ relativeLuminance(accent) <= 0.1706 → 奶白墨 #fff8e9
 | `html[data-theme]` | 已解析主题，恒为 `"light"` \| `"dark"`（所有 CSS 仍按此选择） |
 | `html[data-theme-pref]` | `"system"` \| `"light"` \| `"dark"` |
 | `[data-theme-choice="system\|light\|dark"]` | 显式设置器；`aria-pressed` 对比 **pref** 而非已解析主题 |
-| `[data-theme-toggle]` | 循环 `system → light → dark → system` |
+| `[data-theme-toggle]` | 根据已解析主题在 `light ↔ dark` 间切换，并保存显式选择 |
 | `html.theme-ready` | 首帧后添加，供 `html.theme-ready …` 的过渡使用（有 300ms 定时器兜底，防后台标签页 rAF 不触发） |
 
-- 原先点一次就**永久锁死**，UI 里没有任何回到"跟随系统"的入口；且**从不监听** `matchMedia` 的 `change`，即使从未点过、系统在页面打开期间切换也不响应。两者都已修。
-- 主题图标改由 `[data-theme-pref]` 驱动，并新增 `monitor` 图标——否则三态里"跟随系统 + 系统为浅色"与"浅色"显示同一个图标，第一次点击看起来没反应。实测：system → monitor、light → moon、dark → sun，恒有且仅有一个可见。
+- 首次访问仍跟随系统，且监听 `matchMedia` 的 `change`；阅读器设置可随时显式回到「跟随系统」。
+- 页头不呈现偏好状态，只显示下一步动作：当前为浅色时显示月亮并标注「切换到夜间模式」，当前为深色时显示太阳并标注「切换到日间模式」。点击后保存明确的浅色或深色偏好，不再出现含义不直观的电脑图标。
 - 主题过渡只作用于 `background-color` / `border-color` / `color`（多段渐变不可插值，加了也是硬切）。
 
 ### 1.9 交互状态与可访问性
@@ -317,7 +317,7 @@ node node_modules/astro/bin/astro.mjs build
 
 ```
 src/styles/global.css                     （主要）
-src/layouts/BaseLayout.astro              （主题三态）
+src/layouts/BaseLayout.astro              （主题偏好与明暗切换）
 src/components/{Header,Footer,BookCard,BookCover,Icon}.astro
 src/pages/index.astro
 src/pages/about.astro
