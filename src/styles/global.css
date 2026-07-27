@@ -1116,15 +1116,6 @@ svg {
   font-size: 12px;
 }
 
-.site-footer nav {
-  display: flex;
-  gap: 24px;
-}
-
-.site-footer a:hover {
-  color: #ffffff;
-}
-
 .page-header {
   padding-block: clamp(72px, 9vw, 120px) 54px;
   border-bottom: 1px solid var(--line);
@@ -2179,10 +2170,6 @@ html.theme-ready .reader-header {
 
   .site-footer__inner {
     display: block;
-  }
-
-  .site-footer nav {
-    margin-top: 14px;
   }
 
   .book-detail {
