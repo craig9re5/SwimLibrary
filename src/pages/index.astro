@@ -8,7 +8,6 @@ import {
   getChaptersByBookSlug,
   getFeaturedBook,
 } from "../lib/library";
-import { siteConfig } from "../site.config";
 
 const books = await getAllBooks();
 const featured = (await getFeaturedBook()) ?? books[0];
@@ -35,10 +34,10 @@ const visualBooks = [
       <div class="hero__inner">
         <div class="hero__copy">
           <h1 class="hero__brand reveal reveal--2" id="hero-title">
-            {siteConfig.name}
+            SWIM
           </h1>
           <p class="hero__statement reveal reveal--2">
-            把值得重读的文字，放在一处安静的地方。
+            在字句的深蓝里，向着心之所向潜游。
           </p>
           <div class="hero__actions reveal reveal--3">
             <a class="button button--light" href="#library">
@@ -188,10 +187,16 @@ const visualBooks = [
 
     <section class="section section--bordered">
       <div class="shell statement">
-        <div class="statement__mark" aria-hidden="true">读</div>
-        <p class="statement__copy">
-          书架负责让人发现，详情页负责让人了解，阅读器则应当<em>安静地退到文字之后</em>。这里不追求喧闹的功能，只留下真正帮助阅读的部分。
-        </p>
+        <div class="statement__mark" aria-hidden="true">泳</div>
+        <div class="statement__content">
+          <blockquote class="statement__lyric" lang="ja">
+            <p class="statement__lyric-text">“ 泳いでおいで、夜の冷たさも心配ない。その先には —— ”</p>
+            <cite class="statement__lyric-sub">（游过来吧，夜的冰冷无需担心，在那前方是有光照亮的地方）</cite>
+          </blockquote>
+          <p class="statement__copy">
+            在茫茫文字的深海里，挣扎、下沉，而后<em>再次换气</em>。那些迷茫与错过的日子，都会在翻开书页的瞬间重获微光。潜游书阁不提供喧吵的功能，只为你留下一海可以安然沉潜的深蓝。
+          </p>
+        </div>
       </div>
     </section>
   </main>
