@@ -103,7 +103,6 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
     <script is:inline define:vars={{ lightThemeColor, darkThemeColor }}>
       (() => {
         const root = document.documentElement;
-        const order = ["system", "light", "dark"];
 
         const resolve = (pref) => {
           if (pref === "light" || pref === "dark") return pref;
@@ -122,6 +121,15 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
               "aria-pressed",
               String(button.dataset.themeChoice === pref),
             );
+          });
+        };
+
+        const syncToggles = (theme) => {
+          const label =
+            theme === "dark" ? "切换到日间模式" : "切换到夜间模式";
+          document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+            button.setAttribute("aria-label", label);
+            button.setAttribute("title", label);
           });
         };
 
@@ -144,12 +152,13 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
               theme === "dark" ? darkThemeColor : lightThemeColor,
             );
           syncChoices(pref);
+          syncToggles(theme);
         };
 
         document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
           button.addEventListener("click", () => {
-            const index = Math.max(order.indexOf(root.dataset.themePref), 0);
-            setTheme(order[(index + 1) % order.length]);
+            const currentTheme = root.dataset.theme === "dark" ? "dark" : "light";
+            setTheme(currentTheme === "dark" ? "light" : "dark");
           });
         });
 
@@ -158,6 +167,7 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
         });
 
         syncChoices(root.dataset.themePref || "system");
+        syncToggles(root.dataset.theme === "dark" ? "dark" : "light");
 
         const markReady = () => root.classList.add("theme-ready");
         if (typeof requestAnimationFrame === "function") {
