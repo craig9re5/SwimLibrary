@@ -19,7 +19,7 @@ const isAbout = currentPath === normalizePath(withBase("about/"));
 <header class:list={["site-header", { "site-header--overlay": overlay }]}>
   <div class="site-header__inner">
     <a class="brand" href={withBase()} aria-label={`${siteConfig.name}首页`}>
-      <span class="brand__mark" aria-hidden="true">拾</span>
+      <span class="brand__mark" aria-hidden="true">潜</span>
       <span class="brand__copy">
         <span class="brand__name">{siteConfig.name}</span>
         <span class="brand__subtitle" lang="en">{siteConfig.englishName}</span>
@@ -32,7 +32,8 @@ const isAbout = currentPath === normalizePath(withBase("about/"));
       <a class="icon-button" href={withBase("#library-search")} aria-label="搜索馆藏">
         <Icon name="search" size={19} />
       </a>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="切换明暗主题">
+      <button class="icon-button" type="button" data-theme-toggle aria-label="切换主题：跟随系统 / 浅色 / 深色">
+        <span class="theme-icon--auto"><Icon name="monitor" size={19} /></span>
         <span class="theme-icon--moon"><Icon name="moon" size={19} /></span>
         <span class="theme-icon--sun"><Icon name="sun" size={19} /></span>
       </button>
