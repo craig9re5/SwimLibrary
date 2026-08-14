@@ -109,3 +109,32 @@ export async function getAdjacentChapters(
     next: chapters[currentIndex + 1],
   };
 }
+
+/** Calculate aggregate word count and reading stats for an entire book */
+export function calculateBookStats(chapters: ChapterEntry[]) {
+  let totalCharacters = 0;
+  for (const chapter of chapters) {
+    const text = (chapter.body || "").replace(/[\u4e00-\u9fa5\u3040-\u30ff\u3400-\u4dbf]/g, "c");
+    const cjk = (chapter.body || "").match(/[\u4e00-\u9fa5\u3040-\u30ff\u3400-\u4dbf]/g) || [];
+    const latin = text.replace(/c/g, " ").trim().split(/\s+/).filter(Boolean);
+    totalCharacters += cjk.length + latin.length;
+  }
+
+  let formattedTotal = "";
+  if (totalCharacters >= 10000) {
+    formattedTotal = (totalCharacters / 10000).toFixed(1).replace(/\.0$/, "") + " 万字";
+  } else if (totalCharacters >= 1000) {
+    formattedTotal = totalCharacters.toLocaleString("zh-CN") + " 字";
+  } else {
+    formattedTotal = `${totalCharacters} 字`;
+  }
+
+  const estimatedHours = (totalCharacters / 350 / 60).toFixed(1).replace(/\.0$/, "");
+
+  return {
+    totalCharacters,
+    formattedTotal,
+    estimatedHours,
+  };
+}
+

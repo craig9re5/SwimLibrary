@@ -1,0 +1,244 @@
+---
+import Icon from "./Icon.astro";
+---
+
+<dialog id="search-dialog" class="search-dialog" aria-labelledby="search-dialog-title">
+  <div class="search-modal">
+    <div class="search-modal__header">
+      <span class="search-modal__icon">
+        <Icon name="search" size={20} />
+      </span>
+      <input
+        id="search-input"
+        class="search-modal__input"
+        type="search"
+        placeholder="搜索全站图书、章节或段落文字... (Cmd+K / /)"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <div class="search-modal__badges">
+        <kbd class="kbd-badge">ESC</kbd>
+        <button class="icon-button search-modal__close" type="button" data-search-close aria-label="关闭搜索">
+          <Icon name="close" size={16} />
+        </button>
+      </div>
+    </div>
+
+    <div class="search-modal__body" id="search-results-container">
+      <div class="search-modal__empty" id="search-empty-state">
+        <p>输入关键词开始检索全站馆藏与正文段落</p>
+        <div class="search-modal__hints">
+          <span><kbd class="kbd-badge">↑</kbd> <kbd class="kbd-badge">↓</kbd> 导航</span>
+          <span><kbd class="kbd-badge">↵</kbd> 打开</span>
+          <span><kbd class="kbd-badge">ESC</kbd> 关闭</span>
+        </div>
+      </div>
+      <ul class="search-results-list" id="search-results-list" role="listbox" hidden></ul>
+    </div>
+  </div>
+</dialog>
+
+<script is:inline define:vars={{ baseUrl: import.meta.env.BASE_URL }}>
+  (() => {
+    let searchIndex = null;
+    let isLoading = false;
+    const dialog = document.getElementById("search-dialog");
+    const input = document.getElementById("search-input");
+    const resultsList = document.getElementById("search-results-list");
+    const emptyState = document.getElementById("search-empty-state");
+    let activeIndex = -1;
+
+    const loadIndex = async () => {
+      if (searchIndex || isLoading) return;
+      isLoading = true;
+      try {
+        const url = (baseUrl.replace(/\/+$/, "") + "/search-index.json").replace(/^\/\//, "/");
+        const res = await fetch(url);
+        if (res.ok) {
+          searchIndex = await res.json();
+        }
+      } catch (e) {
+        console.error("Failed to load search index:", e);
+      } finally {
+        isLoading = false;
+      }
+    };
+
+    const openSearch = () => {
+      if (!dialog) return;
+      dialog.showModal();
+      loadIndex();
+      setTimeout(() => input?.focus(), 50);
+    };
+
+    const closeSearch = () => {
+      if (!dialog) return;
+      dialog.close();
+      if (input) input.value = "";
+      renderResults([]);
+    };
+
+    const escapeHtml = (str) =>
+      str.replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+
+    const highlightMatches = (text, query) => {
+      if (!query.trim()) return escapeHtml(text);
+      const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`(${safeQuery})`, "gi");
+      return escapeHtml(text).replace(regex, "<mark class='search-match'>$1</mark>");
+    };
+
+    const performSearch = (query) => {
+      if (!searchIndex || !query.trim()) {
+        renderResults([]);
+        return;
+      }
+
+      const q = query.trim().toLowerCase();
+      const results = [];
+
+      for (const item of searchIndex) {
+        let score = 0;
+        let snippet = item.excerpt;
+
+        const titleMatch = item.chapterTitle.toLowerCase().includes(q);
+        const bookMatch = item.bookTitle.toLowerCase().includes(q);
+        const authorMatch = item.bookAuthor.toLowerCase().includes(q);
+        const textIndex = item.plainText.toLowerCase().indexOf(q);
+
+        if (titleMatch) score += 50;
+        if (bookMatch) score += 30;
+        if (authorMatch) score += 20;
+
+        if (textIndex >= 0) {
+          score += 10;
+          // Extract a 100-character window around the matched keyword
+          const start = Math.max(0, textIndex - 35);
+          const end = Math.min(item.plainText.length, textIndex + q.length + 65);
+          snippet = (start > 0 ? "..." : "") + item.plainText.slice(start, end) + (end < item.plainText.length ? "..." : "");
+        }
+
+        if (score > 0) {
+          results.push({ ...item, score, snippet });
+        }
+      }
+
+      results.sort((a, b) => b.score - a.score);
+      renderResults(results.slice(0, 15), q);
+    };
+
+    const renderResults = (results, query = "") => {
+      if (!resultsList || !emptyState) return;
+      activeIndex = -1;
+
+      if (!results || results.length === 0) {
+        resultsList.hidden = true;
+        emptyState.hidden = false;
+        emptyState.innerHTML = query.trim()
+          ? `<p class="search-modal__no-result">未找到关于 “<strong>${escapeHtml(query)}</strong>” 的内容</p>`
+          : `<p>输入关键词开始检索全站馆藏与正文段落</p>
+             <div class="search-modal__hints">
+               <span><kbd class="kbd-badge">↑</kbd> <kbd class="kbd-badge">↓</kbd> 导航</span>
+               <span><kbd class="kbd-badge">↵</kbd> 打开</span>
+               <span><kbd class="kbd-badge">ESC</kbd> 关闭</span>
+             </div>`;
+        return;
+      }
+
+      emptyState.hidden = true;
+      resultsList.hidden = false;
+
+      resultsList.innerHTML = results
+        .map((item, index) => {
+          const href = (baseUrl.replace(/\/+$/, "") + `/read/${item.bookSlug}/${item.chapterSlug}/`).replace(/^\/\//, "/");
+          return `
+            <li class="search-result-item" role="option" data-index="${index}" data-href="${href}">
+              <a href="${href}" class="search-result-link">
+                <div class="search-result-top">
+                  <span class="search-result-book" style="color: ${item.bookAccent || 'inherit'}">${escapeHtml(item.bookTitle)}</span>
+                  <span class="search-result-divider">/</span>
+                  <span class="search-result-title">${highlightMatches(item.chapterTitle, query)}</span>
+                  <span class="search-result-meta">${item.readingTimeMinutes} 分钟</span>
+                </div>
+                <p class="search-result-snippet">${highlightMatches(item.snippet, query)}</p>
+              </a>
+            </li>
+          `;
+        })
+        .join("");
+    };
+
+    const updateActiveItem = () => {
+      const items = resultsList?.querySelectorAll(".search-result-item");
+      if (!items || items.length === 0) return;
+      items.forEach((el, idx) => {
+        const isActive = idx === activeIndex;
+        el.classList.toggle("is-active", isActive);
+        if (isActive) {
+          el.scrollIntoView({ block: "nearest" });
+        }
+      });
+    };
+
+    input?.addEventListener("input", (e) => {
+      performSearch(e.target.value);
+    });
+
+    input?.addEventListener("keydown", (e) => {
+      const items = resultsList?.querySelectorAll(".search-result-item");
+      const count = items?.length || 0;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (count > 0) {
+          activeIndex = (activeIndex + 1) % count;
+          updateActiveItem();
+        }
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (count > 0) {
+          activeIndex = (activeIndex - 1 + count) % count;
+          updateActiveItem();
+        }
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (activeIndex >= 0 && items && items[activeIndex]) {
+          const href = items[activeIndex].dataset.href;
+          if (href) window.location.href = href;
+        } else if (items && items[0]) {
+          const href = items[0].dataset.href;
+          if (href) window.location.href = href;
+        }
+      }
+    });
+
+    document.querySelectorAll("[data-search-open], a[href*='#library-search']").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        openSearch();
+      });
+    });
+
+    document.querySelectorAll("[data-search-close]").forEach((btn) => {
+      btn.addEventListener("click", closeSearch);
+    });
+
+    dialog?.addEventListener("click", (e) => {
+      if (e.target === dialog) closeSearch();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (
+        (e.key === "k" && (e.metaKey || e.ctrlKey)) ||
+        (e.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName))
+      ) {
+        e.preventDefault();
+        if (dialog?.open) {
+          closeSearch();
+        } else {
+          openSearch();
+        }
+      }
+    });
+  })();
+</script>

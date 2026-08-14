@@ -10,6 +10,7 @@ import {
   type ChapterEntry,
 } from "../../../lib/library";
 import { withBase } from "../../../lib/paths";
+import { calculateReadingStats } from "../../../lib/wordCount";
 
 interface Props {
   book: BookEntry;
@@ -54,11 +55,13 @@ const {
   chapterIndex,
 } = Astro.props;
 const { Content, headings } = await render(chapter);
-const sections = headings.filter((heading) => heading.depth === 2);
+const sections = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
 const chapterSlug = getChapterSlug(chapter);
 const bookHref = withBase(`books/${book.data.slug}/`);
 const chapterHref = (entry: ChapterEntry) =>
   withBase(`read/${book.data.slug}/${getChapterSlug(entry)}/`);
+
+const stats = calculateReadingStats(chapter.body || "");
 ---
 
 <BaseLayout
@@ -71,14 +74,44 @@ const chapterHref = (entry: ChapterEntry) =>
     <span data-reader-progress></span>
   </div>
 
+  <div id="reader-toast" class="reader-toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- Floating Exit Zen Mode Button -->
+  <div class="zen-exit-wrap" data-zen-exit hidden>
+    <button class="zen-exit-btn" type="button" data-zen-toggle aria-label="退出专注模式 (Esc / Z)">
+      <Icon name="minimize" size={15} />
+      <span>退出专注</span>
+    </button>
+  </div>
+
   <header class="reader-header" data-reader-header>
     <div class="reader-header__inner">
-      <a class="reader-header__book" href={bookHref}>
+      <a class="reader-header__book" href={bookHref} title="返回书籍详情">
         <Icon name="chevron-left" size={17} />
         <span>{book.data.title}</span>
       </a>
       <span class="reader-header__chapter">{chapter.data.title}</span>
       <div class="reader-header__actions">
+        <button
+          class="icon-button"
+          type="button"
+          data-search-open
+          aria-label="全站搜索 (Cmd+K)"
+          title="全站搜索 (Cmd+K)"
+        >
+          <Icon name="search" size={18} />
+        </button>
+
+        <button
+          class="icon-button zen-toggle-btn"
+          type="button"
+          data-zen-toggle
+          aria-label="专注模式 (快捷键 Z)"
+          title="专注模式 (快捷键 Z)"
+        >
+          <Icon name="maximize" size={18} />
+        </button>
+
         <button
           class="icon-button mobile-toc-button"
           type="button"
@@ -154,6 +187,26 @@ const chapterHref = (entry: ChapterEntry) =>
                   <button type="button" data-theme-choice="dark" aria-pressed="false">夜读</button>
                 </div>
               </div>
+
+              <div class="reader-settings-data">
+                <span class="range-control__label">
+                  <span>数据与备份</span>
+                </span>
+                <div class="reader-data-actions">
+                  <button class="reader-data-btn" type="button" data-export-backup>
+                    <Icon name="download" size={14} />
+                    <span>导出阅读记录 (JSON)</span>
+                  </button>
+                  <label class="reader-data-btn reader-data-btn--file">
+                    <Icon name="upload" size={14} />
+                    <span>导入备份记录</span>
+                    <input type="file" accept=".json" data-import-backup hidden />
+                  </label>
+                  <button class="reader-data-btn reader-data-btn--danger" type="button" data-reset-progress>
+                    <span>清除本站阅读记录</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -181,21 +234,24 @@ const chapterHref = (entry: ChapterEntry) =>
         返回书籍详情
       </a>
       <h2>{book.data.title}</h2>
-      <ol>
+      <ol class="reader-toc__list">
         {
           chapters.map((entry) => (
             <li>
               <a
                 href={chapterHref(entry)}
                 aria-current={entry.id === chapter.id ? "page" : undefined}
+                class="reader-toc__chap-link"
               >
                 {entry.data.title}
               </a>
               {entry.id === chapter.id && sections.length > 0 && (
                 <ol class="reader-toc__sections">
                   {sections.map((section) => (
-                    <li>
-                      <a href={`#${section.slug}`}>{section.text}</a>
+                    <li class:list={[{ "reader-toc__sec--sub": section.depth === 3 }]}>
+                      <a href={`#${section.slug}`} data-section-link={section.slug}>
+                        {section.text}
+                      </a>
                     </li>
                   ))}
                 </ol>
@@ -208,11 +264,19 @@ const chapterHref = (entry: ChapterEntry) =>
 
     <div class="reader-main">
       <article class="reader-article" data-reader-article>
-        <p class="reader-article__kicker">
-          第 {String(chapterIndex + 1).padStart(2, "0")} 章 · {book.data.title}
-        </p>
-        <h1>{chapter.data.title}</h1>
-        <div class="reader-prose">
+        <div class="reader-article__header">
+          <div class="reader-article__meta-row">
+            <p class="reader-article__kicker">
+              第 {String(chapterIndex + 1).padStart(2, "0")} 章 · {book.data.title}
+            </p>
+            <span class="reader-article__stats">
+              <Icon name="clock" size={13} />
+              <span>{stats.formattedCount} · 约 {stats.readingTimeMinutes} 分钟</span>
+            </span>
+          </div>
+          <h1>{chapter.data.title}</h1>
+        </div>
+        <div class="reader-prose" data-reader-prose>
           <Content />
         </div>
       </article>
@@ -258,7 +322,6 @@ const chapterHref = (entry: ChapterEntry) =>
     </div>
   </main>
 
-
   <dialog class="reader-dialog" id="toc-dialog" aria-labelledby="toc-dialog-title">
     <div class="reader-dialog__header">
       <h2 id="toc-dialog-title">章节目录</h2>
@@ -281,8 +344,10 @@ const chapterHref = (entry: ChapterEntry) =>
               {entry.id === chapter.id && sections.length > 0 && (
                 <ol class="reader-toc__sections">
                   {sections.map((section) => (
-                    <li>
-                      <a href={`#${section.slug}`}>{section.text}</a>
+                    <li class:list={[{ "reader-toc__sec--sub": section.depth === 3 }]}>
+                      <a href={`#${section.slug}`} data-dialog-close>
+                        {section.text}
+                      </a>
                     </li>
                   ))}
                 </ol>
@@ -311,14 +376,29 @@ const chapterHref = (entry: ChapterEntry) =>
 
       const progressKey = "shiyue-progress";
       const settingsKey = "shiyue-reader-settings";
+      const favoritesKey = "shiyue-favorites";
       const shell = document.querySelector("[data-reader-shell]");
       const article = document.querySelector("[data-reader-article]");
+      const prose = document.querySelector("[data-reader-prose]");
       const header = document.querySelector("[data-reader-header]");
       const progressBar = document.querySelector("[data-reader-progress]");
       const fontInput = document.querySelector("[data-reader-font-size]");
       const lineInput = document.querySelector("[data-reader-line-height]");
       const widthInput = document.querySelector("[data-reader-width]");
+      const toastEl = document.getElementById("reader-toast");
+      const zenExitWrap = document.querySelector("[data-zen-exit]");
       let ticking = false;
+
+      const showToast = (msg, duration = 2400) => {
+        if (!toastEl) return;
+        toastEl.textContent = msg;
+        toastEl.hidden = false;
+        toastEl.classList.add("is-visible");
+        setTimeout(() => {
+          toastEl.classList.remove("is-visible");
+          setTimeout(() => { toastEl.hidden = true; }, 300);
+        }, duration);
+      };
 
       const readJson = (key, fallback) => {
         try {
@@ -332,10 +412,10 @@ const chapterHref = (entry: ChapterEntry) =>
         fontSize: 19,
         lineHeight: 1.85,
         width: 36,
+        zenMode: false,
         ...readJson(settingsKey, {}),
       };
 
-      // 迁移旧设置：栏宽曾以 ch 为单位保存（48..82），现在改为「字/行」（26..42）
       settings.fontSize = Math.min(24, Math.max(17, Math.round(Number(settings.fontSize) || 19)));
       settings.lineHeight = Math.min(2.2, Math.max(1.65, Number(settings.lineHeight) || 1.85));
       settings.width = Number(settings.width) || 36;
@@ -383,6 +463,21 @@ const chapterHref = (entry: ChapterEntry) =>
         saveSettings();
       });
 
+      // --- Zen Focus Mode ---
+      const toggleZenMode = (forcedState) => {
+        const isZen = forcedState !== undefined ? forcedState : !document.body.classList.contains("zen-mode");
+        document.body.classList.toggle("zen-mode", isZen);
+        if (zenExitWrap) zenExitWrap.hidden = !isZen;
+        if (isZen) {
+          showToast("已开启专注模式（按 Z 或 ESC 退出）", 2000);
+        }
+      };
+
+      document.querySelectorAll("[data-zen-toggle]").forEach((btn) => {
+        btn.addEventListener("click", () => toggleZenMode());
+      });
+
+      // --- Settings Popover ---
       const settingsToggle = document.querySelector("[data-settings-toggle]");
       const settingsPopover = document.getElementById("settings-popover");
       const settingsClose = document.querySelector("[data-settings-close]");
@@ -428,6 +523,59 @@ const chapterHref = (entry: ChapterEntry) =>
         }
       });
 
+      // --- Data Backup & Restore ---
+      const exportBackupBtn = document.querySelector("[data-export-backup]");
+      const importBackupInput = document.querySelector("[data-import-backup]");
+      const resetProgressBtn = document.querySelector("[data-reset-progress]");
+
+      exportBackupBtn?.addEventListener("click", () => {
+        const data = {
+          version: 1,
+          timestamp: new Date().toISOString(),
+          progress: readJson(progressKey, {}),
+          favorites: readJson(favoritesKey, []),
+          settings: readJson(settingsKey, {}),
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `swim-library-backup-${new Date().toISOString().split("T")[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast("已成功导出备份文件！");
+      });
+
+      importBackupInput?.addEventListener("change", (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const imported = JSON.parse(event.target.result);
+            if (imported.progress) localStorage.setItem(progressKey, JSON.stringify(imported.progress));
+            if (imported.favorites) localStorage.setItem(favoritesKey, JSON.stringify(imported.favorites));
+            if (imported.settings) localStorage.setItem(settingsKey, JSON.stringify(imported.settings));
+            showToast("数据恢复成功，正在刷新...");
+            setTimeout(() => window.location.reload(), 800);
+          } catch (err) {
+            alert("导入失败：无效的 JSON 备份文件格式。");
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      resetProgressBtn?.addEventListener("click", () => {
+        if (confirm("确定要清空本站的所有阅读进度与偏好设置吗？此操作无法撤销。")) {
+          localStorage.removeItem(progressKey);
+          localStorage.removeItem(favoritesKey);
+          localStorage.removeItem(settingsKey);
+          showToast("阅读数据已全部重置");
+          setTimeout(() => window.location.reload(), 600);
+        }
+      });
+
+      // Dialog controls
       document.querySelectorAll("[data-dialog-open]").forEach((button) => {
         button.addEventListener("click", () => {
           document.getElementById(button.dataset.dialogOpen)?.showModal();
@@ -444,16 +592,39 @@ const chapterHref = (entry: ChapterEntry) =>
         });
       });
 
-      // 缓存正文几何，避免滚动时每帧强制同步重排
+      // Tag paragraph blocks for precise scroll anchor recovery
+      const paragraphs = Array.from(
+        prose?.querySelectorAll("p, h2, h3, blockquote, ul, ol") || [],
+      );
+      paragraphs.forEach((el, index) => {
+        el.dataset.paraIdx = String(index);
+      });
+
+      // Cache geometry
       const geom = { top: 0, height: 1 };
       const measure = () => {
         geom.top = article.getBoundingClientRect().top + window.scrollY;
         geom.height = Math.max(1, article.offsetHeight);
       };
 
-      // 进度写入节流：滚动停止 600ms 后落盘，切后台或离开页面时立即落盘
+      // Progress flush throttling
       let pendingProgress = null;
       let flushTimer = 0;
+
+      const getActiveParagraphIndex = () => {
+        const viewCenter = window.scrollY + window.innerHeight * 0.35;
+        let activeIdx = 0;
+        for (let i = 0; i < paragraphs.length; i++) {
+          const rect = paragraphs[i].getBoundingClientRect();
+          const top = rect.top + window.scrollY;
+          if (top <= viewCenter) {
+            activeIdx = i;
+          } else {
+            break;
+          }
+        }
+        return activeIdx;
+      };
 
       const flushProgress = () => {
         if (flushTimer) {
@@ -470,6 +641,7 @@ const chapterHref = (entry: ChapterEntry) =>
           chapter: chapterSlug,
           progress: snapshot.overallProgress,
           chapterProgress: snapshot.chapterProgress,
+          paragraphIndex: snapshot.paragraphIndex,
           href: "read/" + bookSlug + "/" + chapterSlug + "/",
           updatedAt: Date.now(),
         };
@@ -479,7 +651,8 @@ const chapterHref = (entry: ChapterEntry) =>
       };
 
       const saveProgress = (chapterProgress, overallProgress) => {
-        pendingProgress = { chapterProgress, overallProgress };
+        const paragraphIndex = getActiveParagraphIndex();
+        pendingProgress = { chapterProgress, overallProgress, paragraphIndex };
         if (flushTimer) clearTimeout(flushTimer);
         flushTimer = setTimeout(flushProgress, 600);
       };
@@ -529,10 +702,38 @@ const chapterHref = (entry: ChapterEntry) =>
         }).observe(article);
       }
 
+      // --- Heading in-view tracking for Table of Contents ---
+      const headingElements = Array.from(prose?.querySelectorAll("h2, h3") || []);
+      if ("IntersectionObserver" in window && headingElements.length > 0) {
+        const headingObserver = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                const id = entry.target.getAttribute("id");
+                if (id) {
+                  document.querySelectorAll("[data-section-link]").forEach((link) => {
+                    link.classList.toggle("is-active", link.dataset.sectionLink === id);
+                  });
+                }
+              }
+            });
+          },
+          { rootMargin: "-10% 0px -70% 0px" },
+        );
+        headingElements.forEach((h) => headingObserver.observe(h));
+      }
+
+      // Keyboard Shortcuts
       document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && settingsPopover && !settingsPopover.hidden) {
-          closeSettings();
-          return;
+        if (event.key === "Escape") {
+          if (settingsPopover && !settingsPopover.hidden) {
+            closeSettings();
+            return;
+          }
+          if (document.body.classList.contains("zen-mode")) {
+            toggleZenMode(false);
+            return;
+          }
         }
         if (
           event.altKey ||
@@ -544,6 +745,13 @@ const chapterHref = (entry: ChapterEntry) =>
         ) {
           return;
         }
+
+        if (event.key === "z" || event.key === "Z" || event.key === "f" || event.key === "F") {
+          event.preventDefault();
+          toggleZenMode();
+          return;
+        }
+
         if (event.key === "ArrowLeft") {
           document.querySelector("[data-previous-chapter]")?.click();
         }
@@ -555,22 +763,27 @@ const chapterHref = (entry: ChapterEntry) =>
       applySettings();
       measure();
 
+      // Paragraph anchor restoration
       const saved = readJson(progressKey, {})[bookSlug];
       if (
         saved?.chapter === chapterSlug &&
-        saved.chapterProgress > 2 &&
-        saved.chapterProgress < 97 &&
         !window.location.hash
       ) {
         requestAnimationFrame(() => {
           measure();
-          window.scrollTo({
-            top:
-              geom.top +
-              geom.height * (saved.chapterProgress / 100) -
-              window.innerHeight,
-            behavior: "auto",
-          });
+          if (saved.paragraphIndex !== undefined && paragraphs[saved.paragraphIndex]) {
+            paragraphs[saved.paragraphIndex].scrollIntoView({ behavior: "auto", block: "start" });
+            window.scrollBy({ top: -80, behavior: "auto" });
+            showToast("已恢复至上次阅读位置", 2200);
+          } else if (saved.chapterProgress > 2 && saved.chapterProgress < 97) {
+            window.scrollTo({
+              top:
+                geom.top +
+                geom.height * (saved.chapterProgress / 100) -
+                window.innerHeight,
+              behavior: "auto",
+            });
+          }
           updateReadingState();
         });
       } else {
@@ -579,3 +792,4 @@ const chapterHref = (entry: ChapterEntry) =>
     })();
   </script>
 </BaseLayout>
+

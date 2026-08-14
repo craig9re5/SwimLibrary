@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import Footer from "../components/Footer.astro";
 import Header from "../components/Header.astro";
+import SearchModal from "../components/SearchModal.astro";
 import { siteConfig } from "../site.config";
 
 interface Props {
@@ -47,9 +48,21 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
     <meta name="theme-color" content={lightThemeColor} />
     {canonical && <link rel="canonical" href={canonical} />}
     <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+    <link rel="apple-touch-icon" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+    <link rel="manifest" href={`${import.meta.env.BASE_URL}manifest.webmanifest`} />
     <title>{pageTitle}</title>
-    <script is:inline define:vars={{ lightThemeColor, darkThemeColor }}>
+    <script is:inline define:vars={{ lightThemeColor, darkThemeColor, baseUrl: import.meta.env.BASE_URL }}>
       (() => {
+        // Register Service Worker for PWA
+        if ("serviceWorker" in navigator && window.location.protocol.startsWith("http")) {
+          window.addEventListener("load", () => {
+            const swUrl = (baseUrl.replace(/\/+$/, "") + "/sw.js").replace(/^\/\//, "/");
+            navigator.serviceWorker.register(swUrl).catch((err) => {
+              console.warn("[SW] Registration error:", err);
+            });
+          });
+        }
+
         const paintMeta = (theme) => {
           document
             .querySelector('meta[name="theme-color"]')
@@ -99,6 +112,8 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
     {!hideChrome && <Header overlay={overlayHeader} />}
     <slot />
     {!hideChrome && !hideFooter && <Footer />}
+    <SearchModal />
+
 
     <script is:inline define:vars={{ lightThemeColor, darkThemeColor }}>
       (() => {

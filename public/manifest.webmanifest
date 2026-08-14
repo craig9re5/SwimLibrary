@@ -1,0 +1,19 @@
+{
+  "name": "潜游书阁 · Swim Library",
+  "short_name": "潜游书阁",
+  "description": "在字句的深蓝里，向着心之所向潜游。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#030817",
+  "theme_color": "#030817",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

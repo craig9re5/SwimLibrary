@@ -6,6 +6,7 @@ import {
   getAllBooks,
   getChapterSlug,
   getChaptersByBookSlug,
+  calculateBookStats,
   type BookEntry,
   type ChapterEntry,
 } from "../../lib/library";
@@ -40,6 +41,15 @@ const updatedLabel = new Intl.DateTimeFormat("zh-CN", {
   month: "long",
   day: "numeric",
 }).format(book.data.updated);
+
+const bookStats = calculateBookStats(chapters);
+
+// Prepare lightweight chapter content data for client-side EPUB/Markdown export
+const exportChaptersData = chapters.map((c) => ({
+  title: c.data.title,
+  order: c.data.order,
+  body: c.body || "",
+}));
 ---
 
 <BaseLayout title={book.data.title} description={book.data.summary}>
@@ -93,10 +103,36 @@ const updatedLabel = new Intl.DateTimeFormat("zh-CN", {
           </button>
         </div>
 
+        <div class="book-detail__export-row reveal reveal--3">
+          <span class="export-label">全书离线与导出：</span>
+          <div class="export-button-group">
+            <button class="export-pill" type="button" data-export-epub>
+              <Icon name="download" size={14} />
+              <span>EPUB 电子书</span>
+            </button>
+            <button class="export-pill" type="button" data-export-md>
+              <Icon name="file-text" size={14} />
+              <span>Markdown</span>
+            </button>
+            <button class="export-pill" type="button" data-print-book>
+              <Icon name="printer" size={14} />
+              <span>打印 / 存为 PDF</span>
+            </button>
+          </div>
+        </div>
+
         <dl class="book-detail__facts">
           <div>
             <dt>章节</dt>
             <dd>{chapters.length} 章</dd>
+          </div>
+          <div>
+            <dt>总字数</dt>
+            <dd>{bookStats.formattedTotal}</dd>
+          </div>
+          <div>
+            <dt>预计耗时</dt>
+            <dd>约 {bookStats.estimatedHours} 小时</dd>
           </div>
           <div>
             <dt>最近整理</dt>
@@ -131,7 +167,17 @@ const updatedLabel = new Intl.DateTimeFormat("zh-CN", {
     </div>
   </main>
 
-  <script is:inline define:vars={{ baseUrl: import.meta.env.BASE_URL }}>
+  <script
+    is:inline
+    define:vars={{
+      baseUrl: import.meta.env.BASE_URL,
+      bookTitle: book.data.title,
+      bookAuthor: book.data.author,
+      bookSummary: book.data.summary,
+      bookSlug: book.data.slug,
+      chaptersData: exportChaptersData,
+    }}
+  >
     (() => {
       const progressKey = "shiyue-progress";
       const favoritesKey = "shiyue-favorites";
@@ -164,7 +210,7 @@ const updatedLabel = new Intl.DateTimeFormat("zh-CN", {
           active ? "已收藏" : "收藏本书";
       };
 
-      favoriteButton.addEventListener("click", () => {
+      favoriteButton?.addEventListener("click", () => {
         if (favorites.has(slug)) favorites.delete(slug);
         else favorites.add(slug);
         try {
@@ -174,6 +220,74 @@ const updatedLabel = new Intl.DateTimeFormat("zh-CN", {
       });
 
       renderFavorite();
+
+      // --- Export Handlers ---
+      const exportEpubBtn = document.querySelector("[data-export-epub]");
+      const exportMdBtn = document.querySelector("[data-export-md]");
+      const printBtn = document.querySelector("[data-print-book]");
+
+      // Export Markdown
+      exportMdBtn?.addEventListener("click", () => {
+        let mdContent = `# ${bookTitle}\n\n**作者**：${bookAuthor}\n\n**简介**：${bookSummary}\n\n---\n\n`;
+        chaptersData.forEach((ch, idx) => {
+          mdContent += `\n\n# 第 ${idx + 1} 章 ${ch.title}\n\n${ch.body}\n\n---\n`;
+        });
+
+        const blob = new Blob([mdContent], { type: "text/markdown;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${bookTitle} - ${bookAuthor}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // Export EPUB using Pure JS EPUB Generator
+      exportEpubBtn?.addEventListener("click", async () => {
+        exportEpubBtn.disabled = true;
+        const originalText = exportEpubBtn.innerHTML;
+        exportEpubBtn.innerHTML = "<span>正在生成 EPUB...</span>";
+
+        try {
+          // Dynamic import our pure TS/JS epub generator
+          const { generateEpub } = await import(`${baseUrl.replace(/\/+$/, "")}/src/lib/epub.ts?t=${Date.now()}`).catch(async () => {
+            // Fallback module resolver
+            return await import("../../lib/epub");
+          });
+
+          const epubBytes = generateEpub({
+            title: bookTitle,
+            author: bookAuthor,
+            summary: bookSummary,
+            chapters: chaptersData.map((c, i) => ({
+              title: c.title,
+              order: i + 1,
+              htmlContent: c.body,
+            })),
+          });
+
+          const blob = new Blob([epubBytes], { type: "application/epub+zip" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${bookTitle} - ${bookAuthor}.epub`;
+          a.click();
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          console.error("EPUB export failed:", err);
+          // Fallback to markdown download if module dynamic import fails
+          exportMdBtn?.click();
+        } finally {
+          exportEpubBtn.innerHTML = originalText;
+          exportEpubBtn.disabled = false;
+        }
+      });
+
+      // Print / Save as PDF
+      printBtn?.addEventListener("click", () => {
+        window.print();
+      });
     })();
   </script>
 </BaseLayout>
+
