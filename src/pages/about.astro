@@ -125,7 +125,32 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
 
     <section class="about-note" aria-labelledby="about-title">
       <div class="about-note__inner">
+        <p class="about-note__eyebrow">About the library</p>
         <h1 id="about-title" class="about-note__title">关于{siteConfig.name}</h1>
+        <div class="about-note__grid">
+          <div class="about-note__prose">
+            <p>
+              <strong>潜游书阁</strong>（Swim Library）是一座专为沉静长读而筑的数字藏书阁。馆名源自《SWIM》中向着微光游弋的意象——在信息喧嚣的浪潮之中，我们希望为你保留一片能让人彻底沉静心绪、潜入字里行间的深蓝海域。
+            </p>
+            <p>
+              这里不设喧扰的社交干扰与推荐算法，每一卷书册均经过严谨的校对排版，并配备自适应深浅色域与无级字号排版引擎。无论是白昼的专注阅览，还是深夜的静心重温，都能以最契合双眼的节奏舒心沉潜。
+            </p>
+          </div>
+          <div class="about-note__pillars">
+            <div class="about-note__card">
+              <h3>纯粹阅读</h3>
+              <p>无广告、无弹窗、极简加载，只保留最核心的文字排版与章节索引。</p>
+            </div>
+            <div class="about-note__card">
+              <h3>温润质感</h3>
+              <p>专为长文阅读打磨的衬线字级、标点挤压与护眼色彩体系。</p>
+            </div>
+            <div class="about-note__card">
+              <h3>离线记忆</h3>
+              <p>阅读进度与偏好设置自动保存在本地，随时随地接续上次的阅读点。</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   </main>
@@ -684,17 +709,97 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
   }
 
   .about-note__inner {
-    width: 100%;
+    width: min(100%, 1400px);
+    margin-inline: auto;
+  }
+
+  .about-note__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 16px;
+    color: rgba(127, 169, 245, 0.85);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .about-note__eyebrow::before {
+    width: 24px;
+    height: 1px;
+    background: currentColor;
+    content: "";
   }
 
   .about-note__title {
-    margin: 0;
+    margin: 0 0 36px;
     color: #f2f6ff;
     font-family: var(--font-serif);
     font-size: clamp(32px, 5vw, 52px);
     font-weight: 700;
     letter-spacing: 0;
     line-height: 1.16;
+  }
+
+  .about-note__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+    gap: clamp(36px, 5vw, 72px);
+    align-items: start;
+  }
+
+  .about-note__prose {
+    display: grid;
+    gap: 20px;
+    color: rgba(222, 235, 255, 0.82);
+    font-family: var(--font-serif);
+    font-size: clamp(16px, 1.3vw, 19px);
+    line-height: 1.95;
+  }
+
+  .about-note__prose strong {
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  .about-note__pillars {
+    display: grid;
+    gap: 14px;
+  }
+
+  .about-note__card {
+    padding: 20px 22px;
+    border: 1px solid rgba(222, 235, 255, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    transition:
+      border-color 200ms ease,
+      background-color 200ms ease,
+      transform 200ms ease;
+  }
+
+  .about-note__card:hover {
+    border-color: rgba(127, 169, 245, 0.35);
+    background: rgba(127, 169, 245, 0.06);
+    transform: translateY(-2px);
+  }
+
+  .about-note__card h3 {
+    margin: 0 0 6px;
+    color: #7fa9f5;
+    font-family: var(--font-serif);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .about-note__card p {
+    margin: 0;
+    color: rgba(213, 226, 247, 0.68);
+    font-size: 13.5px;
+    line-height: 1.65;
   }
 
   @keyframes backdrop-settle {
@@ -763,6 +868,13 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
 
     .swim-lyrics__line {
       font-size: clamp(2rem, 5.2vw, 3.2rem);
+    }
+  }
+
+  @media (max-width: 900px) {
+    .about-note__grid {
+      grid-template-columns: 1fr;
+      gap: 36px;
     }
   }
 

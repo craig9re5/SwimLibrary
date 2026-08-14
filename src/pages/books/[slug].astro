@@ -60,7 +60,13 @@ const updatedLabel = new Intl.DateTimeFormat("zh-CN", {
       </div>
 
       <article class="book-detail__content">
-        <p class="book-detail__category reveal">{book.data.category}</p>
+        <div class="book-detail__header-row reveal">
+          <a class="book-detail__back" href={withBase("#library")}>
+            <Icon name="chevron-left" size={15} />
+            <span>返回馆藏</span>
+          </a>
+          <p class="book-detail__category">{book.data.category}</p>
+        </div>
         <h1 class="reveal reveal--2">{book.data.title}</h1>
         <p class="book-detail__author reveal reveal--2">{book.data.author}</p>
         <p class="book-detail__summary reveal reveal--3">{book.data.summary}</p>

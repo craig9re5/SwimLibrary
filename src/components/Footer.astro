@@ -6,8 +6,8 @@ import { siteConfig } from "../site.config";
 <footer class="site-footer">
   <div class="site-footer__inner shell">
     <div class="site-footer__meta">
-      <p class="site-footer__copyright">© {new Date().getFullYear()} SwimLib By Craig Tateishi.</p>
-      <p class="site-footer__tagline">Designed for clarity and elegance.</p>
+      <p class="site-footer__copyright">© {new Date().getFullYear()} {siteConfig.name} · {siteConfig.englishName}</p>
+      <p class="site-footer__tagline">{siteConfig.description}</p>
     </div>
     {
       siteConfig.github && (

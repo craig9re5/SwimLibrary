@@ -289,6 +289,23 @@ const visualBooks = [
         applyFilters();
         search.focus();
       });
+
+      const handleSearchHash = () => {
+        if (window.location.hash === "#library-search" && search) {
+          search.focus();
+        }
+      };
+
+      window.addEventListener("hashchange", handleSearchHash);
+      if (window.location.hash === "#library-search") {
+        setTimeout(handleSearchHash, 100);
+      }
+
+      document.querySelectorAll('a[href*="#library-search"]').forEach((link) => {
+        link.addEventListener("click", () => {
+          setTimeout(() => search?.focus(), 80);
+        });
+      });
     })();
   </script>
 </BaseLayout>
