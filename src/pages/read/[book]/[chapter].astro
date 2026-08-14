@@ -87,14 +87,77 @@ const chapterHref = (entry: ChapterEntry) =>
         >
           <Icon name="menu" size={19} />
         </button>
-        <button
-          class="icon-button"
-          type="button"
-          data-dialog-open="settings-dialog"
-          aria-label="打开阅读设置"
-        >
-          <Icon name="settings" size={19} />
-        </button>
+
+        <div class="reader-settings-anchor">
+          <button
+            class="icon-button"
+            type="button"
+            data-settings-toggle
+            aria-expanded="false"
+            aria-controls="settings-popover"
+            aria-label="阅读设置"
+          >
+            <Icon name="settings" size={19} />
+          </button>
+
+          <div
+            class="reader-settings-popover"
+            id="settings-popover"
+            role="region"
+            aria-label="阅读设置"
+            hidden
+          >
+            <div class="reader-settings-popover__header">
+              <span class="reader-settings-popover__title">阅读偏好</span>
+              <button
+                class="reader-settings-popover__close"
+                type="button"
+                data-settings-close
+                aria-label="关闭阅读设置"
+              >
+                <Icon name="close" size={14} />
+              </button>
+            </div>
+
+            <div class="reader-settings-popover__body">
+              <label class="range-control">
+                <span class="range-control__label">
+                  <span>字号</span>
+                  <output data-font-size-output class="range-control__badge">19 px</output>
+                </span>
+                <input data-reader-font-size type="range" min="17" max="24" step="1" value="19" />
+              </label>
+
+              <label class="range-control">
+                <span class="range-control__label">
+                  <span>行高</span>
+                  <output data-line-height-output class="range-control__badge">1.85</output>
+                </span>
+                <input data-reader-line-height type="range" min="1.65" max="2.2" step="0.05" value="1.85" />
+              </label>
+
+              <label class="range-control">
+                <span class="range-control__label">
+                  <span>每行字数</span>
+                  <output data-reader-width-output class="range-control__badge">36 字/行</output>
+                </span>
+                <input data-reader-width type="range" min="26" max="42" step="1" value="36" />
+              </label>
+
+              <div class="reader-settings-theme">
+                <span class="range-control__label">
+                  <span>阅读主题</span>
+                </span>
+                <div class="theme-choice theme-choice--3">
+                  <button type="button" data-theme-choice="system" aria-pressed="false">跟随系统</button>
+                  <button type="button" data-theme-choice="light" aria-pressed="false">日读</button>
+                  <button type="button" data-theme-choice="dark" aria-pressed="false">夜读</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <button class="icon-button" type="button" data-theme-toggle aria-label="切换明暗主题">
           <span class="theme-icon--moon"><Icon name="moon" size={18} /></span>
           <span class="theme-icon--sun"><Icon name="sun" size={18} /></span>
@@ -195,48 +258,6 @@ const chapterHref = (entry: ChapterEntry) =>
     </div>
   </main>
 
-  <dialog class="reader-dialog" id="settings-dialog" aria-labelledby="settings-dialog-title">
-    <div class="reader-dialog__header">
-      <h2 id="settings-dialog-title">阅读设置</h2>
-      <button class="icon-button" type="button" data-dialog-close aria-label="关闭阅读设置">
-        <Icon name="close" size={19} />
-      </button>
-    </div>
-    <div class="reader-dialog__body">
-      <label class="range-control">
-        <span class="range-control__label">
-          <span>字号</span>
-          <output data-font-size-output>19 px</output>
-        </span>
-        <input data-reader-font-size type="range" min="17" max="24" step="1" value="19" />
-      </label>
-
-      <label class="range-control">
-        <span class="range-control__label">
-          <span>行高</span>
-          <output data-line-height-output>1.85</output>
-        </span>
-        <input data-reader-line-height type="range" min="1.65" max="2.2" step="0.05" value="1.85" />
-      </label>
-
-      <label class="range-control">
-        <span class="range-control__label">
-          <span>每行字数</span>
-          <output data-reader-width-output>36 字/行</output>
-        </span>
-        <input data-reader-width type="range" min="26" max="42" step="1" value="36" />
-      </label>
-
-      <div>
-        <span class="range-control__label">阅读主题</span>
-        <div class="theme-choice theme-choice--3">
-          <button type="button" data-theme-choice="system" aria-pressed="false">跟随系统</button>
-          <button type="button" data-theme-choice="light" aria-pressed="false">日读</button>
-          <button type="button" data-theme-choice="dark" aria-pressed="false">夜读</button>
-        </div>
-      </div>
-    </div>
-  </dialog>
 
   <dialog class="reader-dialog" id="toc-dialog" aria-labelledby="toc-dialog-title">
     <div class="reader-dialog__header">
@@ -297,9 +318,7 @@ const chapterHref = (entry: ChapterEntry) =>
       const fontInput = document.querySelector("[data-reader-font-size]");
       const lineInput = document.querySelector("[data-reader-line-height]");
       const widthInput = document.querySelector("[data-reader-width]");
-      let lastScroll = window.scrollY;
       let ticking = false;
-      let accum = 0;
 
       const readJson = (key, fallback) => {
         try {
@@ -362,6 +381,51 @@ const chapterHref = (entry: ChapterEntry) =>
         settings.width = Number(widthInput.value);
         applySettings();
         saveSettings();
+      });
+
+      const settingsToggle = document.querySelector("[data-settings-toggle]");
+      const settingsPopover = document.getElementById("settings-popover");
+      const settingsClose = document.querySelector("[data-settings-close]");
+
+      const openSettings = () => {
+        if (!settingsPopover) return;
+        settingsPopover.hidden = false;
+        settingsToggle?.setAttribute("aria-expanded", "true");
+      };
+
+      const closeSettings = () => {
+        if (!settingsPopover) return;
+        settingsPopover.hidden = true;
+        settingsToggle?.setAttribute("aria-expanded", "false");
+      };
+
+      const toggleSettings = () => {
+        if (settingsPopover?.hidden) {
+          openSettings();
+        } else {
+          closeSettings();
+        }
+      };
+
+      settingsToggle?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleSettings();
+      });
+
+      settingsClose?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        closeSettings();
+      });
+
+      document.addEventListener("click", (e) => {
+        if (
+          settingsPopover &&
+          !settingsPopover.hidden &&
+          !settingsPopover.contains(e.target) &&
+          !settingsToggle?.contains(e.target)
+        ) {
+          closeSettings();
+        }
       });
 
       document.querySelectorAll("[data-dialog-open]").forEach((button) => {
@@ -436,19 +500,7 @@ const chapterHref = (entry: ChapterEntry) =>
           ((chapterIndex + chapterProgress / 100) / chapterCount) * 100;
         progressBar.style.setProperty("--reading-progress", chapterProgress + "%");
 
-        const delta = y - lastScroll;
-        if ((delta > 0) !== (accum > 0)) accum = 0;
-        accum += delta;
-        header.dataset.scrolled = String(y > 30);
-        if (y <= 180) {
-          header.dataset.hidden = "false";
-          accum = 0;
-        } else if (accum > 72) {
-          header.dataset.hidden = "true";
-        } else if (accum < -40) {
-          header.dataset.hidden = "false";
-        }
-        lastScroll = y;
+        header.dataset.scrolled = String(y > 20);
 
         saveProgress(chapterProgress, overallProgress);
         ticking = false;
@@ -477,18 +529,17 @@ const chapterHref = (entry: ChapterEntry) =>
         }).observe(article);
       }
 
-      // 键盘焦点落到隐藏的顶栏上时强制展开
-      header.addEventListener("focusin", () => {
-        header.dataset.hidden = "false";
-        accum = 0;
-      });
-
       document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && settingsPopover && !settingsPopover.hidden) {
+          closeSettings();
+          return;
+        }
         if (
           event.altKey ||
           event.ctrlKey ||
           event.metaKey ||
           document.querySelector("dialog[open]") ||
+          (settingsPopover && !settingsPopover.hidden) ||
           ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)
         ) {
           return;

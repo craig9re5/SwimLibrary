@@ -17,3 +17,6 @@ Thumbs.db
 # local visual QA artifacts
 .codex-artifacts/
 .codex-preview.*.log
+.claude/
+.codex/
+

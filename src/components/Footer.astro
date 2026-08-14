@@ -1,10 +1,29 @@
 ---
+import Icon from "./Icon.astro";
 import { siteConfig } from "../site.config";
 ---
 
 <footer class="site-footer">
   <div class="site-footer__inner shell">
-    <p>© {new Date().getFullYear()} {siteConfig.name}</p>
+    <div class="site-footer__meta">
+      <p class="site-footer__copyright">© {new Date().getFullYear()} SwimLib By Craig Tateishi.</p>
+      <p class="site-footer__tagline">Designed for clarity and elegance.</p>
+    </div>
+    {
+      siteConfig.github && (
+        <a
+          class="site-footer__github"
+          href={siteConfig.github}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="访问 GitHub 仓库"
+        >
+          <Icon name="github" size={16} />
+          <span>GitHub</span>
+        </a>
+      )
+    }
   </div>
 </footer>
+
 

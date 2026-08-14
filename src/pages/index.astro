@@ -33,12 +33,9 @@ const visualBooks = [
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero__inner">
         <div class="hero__copy">
-          <h1 class="hero__brand reveal reveal--2" id="hero-title">
-            SWIM
-          </h1>
-          <p class="hero__statement reveal reveal--2">
+          <h1 class="hero__statement reveal reveal--2" id="hero-title">
             在字句的深蓝里，向着心之所向潜游。
-          </p>
+          </h1>
           <div class="hero__actions reveal reveal--3">
             <a class="button button--light" href="#library">
               浏览馆藏
@@ -94,30 +91,30 @@ const visualBooks = [
       </div>
     </section>
 
-    <section class="section--tight" data-continue-section hidden>
-      <div class="shell">
-        <div class="continue-reading" data-continue-card>
-          <div class="continue-reading__book">
-            <span class="continue-reading__mark" aria-hidden="true">续</span>
-            <div>
-              <p class="eyebrow">Continue reading</p>
-              <h3 data-continue-title>继续阅读</h3>
-              <p data-continue-meta></p>
-              <div class="progress-track" aria-hidden="true">
-                <span data-continue-progress></span>
-              </div>
-            </div>
-          </div>
-          <a class="button" href="#" data-continue-link>
-            回到上次位置
-            <Icon name="arrow-right" size={17} />
-          </a>
-        </div>
-      </div>
-    </section>
-
     <section class="section" id="library" aria-labelledby="library-title">
       <div class="shell">
+        <div class="continue-reading-wrap" data-continue-section hidden>
+          <div class="continue-reading" data-continue-card>
+            <div class="continue-reading__book">
+              <span class="continue-reading__mark" aria-hidden="true">
+                <Icon name="book-open" size={22} />
+              </span>
+              <div>
+                <p class="eyebrow">Continue reading</p>
+                <h3 data-continue-title>继续阅读</h3>
+                <p data-continue-meta></p>
+                <div class="progress-track" aria-hidden="true">
+                  <span data-continue-progress></span>
+                </div>
+              </div>
+            </div>
+            <a class="button" href="#" data-continue-link>
+              回到上次位置
+              <Icon name="arrow-right" size={17} />
+            </a>
+          </div>
+        </div>
+
         <div class="section-heading">
           <div>
             <p class="eyebrow">The collection</p>
