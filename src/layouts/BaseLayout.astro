@@ -23,7 +23,9 @@ const {
   bodyClass = "",
 } = Astro.props;
 
-const pageTitle = title ? `${title} · ${siteConfig.name}` : siteConfig.name;
+const pageTitle = title
+  ? `${title} · ${siteConfig.name}`
+  : `${siteConfig.englishName} · ${siteConfig.name}`;
 const canonical = Astro.site
   ? new URL(Astro.url.pathname, Astro.site).toString()
   : undefined;

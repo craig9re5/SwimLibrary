@@ -6,8 +6,8 @@ import { siteConfig } from "../site.config";
 <footer class="site-footer">
   <div class="site-footer__inner shell">
     <div class="site-footer__meta">
-      <p class="site-footer__copyright">© {new Date().getFullYear()} {siteConfig.name} · {siteConfig.englishName}</p>
-      <p class="site-footer__tagline">{siteConfig.description}</p>
+      <p class="site-footer__copyright">© {new Date().getFullYear()} {siteConfig.englishName} By {siteConfig.author}.</p>
+      <p class="site-footer__tagline">{siteConfig.tagline}</p>
     </div>
     {
       siteConfig.github && (
@@ -16,7 +16,7 @@ import { siteConfig } from "../site.config";
           href={siteConfig.github}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="访问 GitHub 仓库"
+          aria-label="访问 Craig Tateishi 的 GitHub 主页"
         >
           <Icon name="github" size={16} />
           <span>GitHub</span>
