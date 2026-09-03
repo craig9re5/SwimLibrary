@@ -3,6 +3,7 @@ import {
   getEntry,
   type CollectionEntry,
 } from "astro:content";
+import { calculateReadingStats } from "./wordCount";
 
 export type BookEntry = CollectionEntry<"books">;
 export type ChapterEntry = CollectionEntry<"chapters">;
@@ -114,10 +115,8 @@ export async function getAdjacentChapters(
 export function calculateBookStats(chapters: ChapterEntry[]) {
   let totalCharacters = 0;
   for (const chapter of chapters) {
-    const text = (chapter.body || "").replace(/[\u4e00-\u9fa5\u3040-\u30ff\u3400-\u4dbf]/g, "c");
-    const cjk = (chapter.body || "").match(/[\u4e00-\u9fa5\u3040-\u30ff\u3400-\u4dbf]/g) || [];
-    const latin = text.replace(/c/g, " ").trim().split(/\s+/).filter(Boolean);
-    totalCharacters += cjk.length + latin.length;
+    const stats = calculateReadingStats(chapter.body || "");
+    totalCharacters += stats.totalCount;
   }
 
   let formattedTotal = "";

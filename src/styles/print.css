@@ -1,0 +1,61 @@
+/* ==========================================================================
+   Print Stylesheet (@media print)
+   ========================================================================== */
+@media print {
+  @page {
+    margin: 2cm;
+    size: auto;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #111111 !important;
+    font-size: 12pt !important;
+    line-height: 1.7 !important;
+  }
+
+  .site-header,
+  .site-footer,
+  .reader-header,
+  .reader-toc,
+  .reader-dialog,
+  .reader-navigation,
+  .reader-progress,
+  .zen-exit-wrap,
+  .search-dialog,
+  .book-detail__actions,
+  .book-detail__export-row,
+  .button,
+  .icon-button {
+    display: none !important;
+  }
+
+  .reader-shell {
+    display: block !important;
+    padding: 0 !important;
+  }
+
+  .reader-main {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .reader-article > h1 {
+    font-size: 20pt !important;
+    margin-bottom: 1.5em !important;
+    color: #000000 !important;
+  }
+
+  .reader-prose p {
+    text-indent: 2em;
+    margin-bottom: 1em !important;
+    orphans: 3;
+    widows: 3;
+  }
+
+  .reader-prose h2,
+  .reader-prose h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+}

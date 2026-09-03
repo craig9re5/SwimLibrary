@@ -141,9 +141,10 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
           });
         };
 
-        const syncToggles = (theme) => {
-          const label =
-            theme === "dark" ? "切换到日间模式" : "切换到夜间模式";
+        const syncToggles = (pref) => {
+          let label = "当前：跟随系统，点击切换为日间模式";
+          if (pref === "light") label = "当前：日间模式，点击切换为夜间模式";
+          else if (pref === "dark") label = "当前：夜间模式，点击恢复跟随系统";
           document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
             button.setAttribute("aria-label", label);
             button.setAttribute("title", label);
@@ -169,13 +170,19 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
               theme === "dark" ? darkThemeColor : lightThemeColor,
             );
           syncChoices(pref);
-          syncToggles(theme);
+          syncToggles(pref);
         };
 
         document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
           button.addEventListener("click", () => {
-            const currentTheme = root.dataset.theme === "dark" ? "dark" : "light";
-            setTheme(currentTheme === "dark" ? "light" : "dark");
+            const currentPref = root.dataset.themePref || "system";
+            const nextPref =
+              currentPref === "system"
+                ? "light"
+                : currentPref === "light"
+                  ? "dark"
+                  : "system";
+            setTheme(nextPref);
           });
         });
 
@@ -184,7 +191,7 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
         });
 
         syncChoices(root.dataset.themePref || "system");
-        syncToggles(root.dataset.theme === "dark" ? "dark" : "light");
+        syncToggles(root.dataset.themePref || "system");
 
         const markReady = () => root.classList.add("theme-ready");
         if (typeof requestAnimationFrame === "function") {

@@ -28,10 +28,11 @@ const isAbout = currentPath === normalizePath(withBase("about/"));
     <nav class="site-nav" aria-label="主导航">
       <a class="site-nav__link" href={withBase("#library")} aria-current={isHome ? "location" : undefined}>馆藏</a>
       <a class="site-nav__link" href={withBase("about/")} aria-current={isAbout ? "page" : undefined}>关于</a>
-      <a class="icon-button" href={withBase("#library-search")} aria-label="搜索馆藏">
+      <button class="icon-button" type="button" data-search-open aria-label="搜索馆藏与章节 (Cmd+K)">
         <Icon name="search" size={19} />
-      </a>
+      </button>
       <button class="icon-button" type="button" data-theme-toggle aria-label="切换主题模式">
+        <span class="theme-icon--monitor"><Icon name="monitor" size={19} /></span>
         <span class="theme-icon--moon"><Icon name="moon" size={19} /></span>
         <span class="theme-icon--sun"><Icon name="sun" size={19} /></span>
       </button>
