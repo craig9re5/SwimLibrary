@@ -1,84 +1,6 @@
 @import "tailwindcss";
+@import "./tokens.css";
 
-:root {
-  color-scheme: light;
-  --paper: #eaf1f5;
-  --paper-deep: #d9e6ed;
-  --paper-raised: #f5f9fb;
-  --ink: #081426;
-  --ink-soft: #32445e;
-  --muted: #55677f;
-  --line: rgba(8, 26, 52, 0.13);
-  --line-strong: rgba(8, 26, 52, 0.24);
-  --line-control: rgba(8, 26, 52, 0.42);
-  --accent: #1d5fca;
-  --accent-strong: #134aa2;
-  --accent-soft: rgba(29, 95, 202, 0.12);
-  --accent-contrast: #f8faff;
-  --surface: #ffffff;
-  --surface-sunken: #f2f7fa;
-  --surface-line: rgba(8, 26, 52, 0.16);
-  --glass: rgba(244, 249, 252, 0.58);
-  --glass-strong: rgba(246, 251, 253, 0.8);
-  --glow-blue: rgba(44, 109, 235, 0.2);
-  --glow-rose: rgba(235, 103, 144, 0.11);
-  --shadow: 0 1px 2px rgba(5, 28, 61, 0.06), 0 18px 40px -16px rgba(5, 28, 61, 0.24);
-  --reader-paper: #eef4f8;
-  --reader-paper-deep: #dfe9f0;
-  --reader-paper-raised: #f9fcfd;
-  --reader-ink: #1c2942;
-  --reader-ink-soft: #3d4d67;
-  --reader-muted: #55677f;
-  --reader-line: rgba(8, 26, 52, 0.13);
-  --reader-line-strong: rgba(8, 26, 52, 0.24);
-  --reader-accent: #1d5fca;
-  --reader-accent-strong: #134aa2;
-  --reader-accent-soft: rgba(29, 95, 202, 0.12);
-  --font-sans:
-    "Avenir Next", Avenir, "Segoe UI Variable Text", "Segoe UI", "Noto Sans SC",
-    "PingFang SC", "Microsoft YaHei", sans-serif;
-  --font-serif:
-    "Iowan Old Style", Baskerville, Georgia, "Source Han Serif SC",
-    "Noto Serif SC", "Songti SC", SimSun, serif;
-  --shell: min(1240px, calc(100vw - 48px));
-  --header-height: 76px;
-}
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --paper: #0b1220;
-  --paper-deep: #070d18;
-  --paper-raised: #151f33;
-  --ink: #dbe4f2;
-  --ink-soft: #b3c0d4;
-  --muted: #93a3ba;
-  --line: rgba(222, 235, 255, 0.13);
-  --line-strong: rgba(222, 235, 255, 0.26);
-  --line-control: rgba(222, 235, 255, 0.40);
-  --accent: #7fa9f5;
-  --accent-strong: #a7c6ff;
-  --accent-soft: rgba(103, 155, 255, 0.16);
-  --accent-contrast: #071229;
-  --surface: #151f33;
-  --surface-sunken: #101827;
-  --surface-line: rgba(222, 235, 255, 0.16);
-  --glass: rgba(21, 31, 51, 0.66);
-  --glass-strong: rgba(21, 31, 51, 0.86);
-  --glow-blue: rgba(57, 116, 255, 0.2);
-  --glow-rose: rgba(255, 104, 151, 0.09);
-  --shadow: 0 1px 2px rgba(0, 2, 14, 0.5), 0 20px 44px -18px rgba(0, 2, 14, 0.7);
-  --reader-paper: #0d1524;
-  --reader-paper-deep: #080f1b;
-  --reader-paper-raised: #111b2c;
-  --reader-ink: #d3dced;
-  --reader-ink-soft: #adb9cd;
-  --reader-muted: #8b9ab1;
-  --reader-line: rgba(222, 235, 255, 0.13);
-  --reader-line-strong: rgba(222, 235, 255, 0.26);
-  --reader-accent: #7fa9f5;
-  --reader-accent-strong: #a7c6ff;
-  --reader-accent-soft: rgba(103, 155, 255, 0.16);
-}
 
 *,
 *::before,
@@ -316,19 +238,22 @@ svg {
   background: rgba(255, 255, 255, 0.12);
 }
 
+.theme-icon--monitor,
+.theme-icon--moon,
 .theme-icon--sun {
   display: none;
 }
 
-.theme-icon--moon {
+:root[data-theme-pref="system"] .theme-icon--monitor,
+:root:not([data-theme-pref]) .theme-icon--monitor {
   display: block;
 }
 
-:root[data-theme="dark"] .theme-icon--moon {
-  display: none;
+:root[data-theme-pref="light"] .theme-icon--moon {
+  display: block;
 }
 
-:root[data-theme="dark"] .theme-icon--sun {
+:root[data-theme-pref="dark"] .theme-icon--sun {
   display: block;
 }
 
@@ -2464,6 +2389,11 @@ html.theme-ready .reader-header {
     grid-template-columns: 1fr;
   }
 
+  .reader-nav-link--placeholder,
+  .reader-navigation > span:empty {
+    display: none;
+  }
+
   .reader-nav-link--next {
     justify-content: flex-start;
     text-align: left;
@@ -2907,66 +2837,6 @@ body.zen-mode .reader-main {
   border-color: var(--accent);
   transform: translateY(-1px);
 }
+@import "./print.css";
 
-/* ==========================================================================
-   Print Stylesheet (@media print)
-   ========================================================================== */
-@media print {
-  @page {
-    margin: 2cm;
-    size: auto;
-  }
-
-  body {
-    background: #ffffff !important;
-    color: #111111 !important;
-    font-size: 12pt !important;
-    line-height: 1.7 !important;
-  }
-
-  .site-header,
-  .site-footer,
-  .reader-header,
-  .reader-toc,
-  .reader-dialog,
-  .reader-navigation,
-  .reader-progress,
-  .zen-exit-wrap,
-  .search-dialog,
-  .book-detail__actions,
-  .book-detail__export-row,
-  .button,
-  .icon-button {
-    display: none !important;
-  }
-
-  .reader-shell {
-    display: block !important;
-    padding: 0 !important;
-  }
-
-  .reader-main {
-    padding: 0 !important;
-    max-width: 100% !important;
-  }
-
-  .reader-article > h1 {
-    font-size: 20pt !important;
-    margin-bottom: 1.5em !important;
-    color: #000000 !important;
-  }
-
-  .reader-prose p {
-    text-indent: 2em;
-    margin-bottom: 1em !important;
-    orphans: 3;
-    widows: 3;
-  }
-
-  .reader-prose h2,
-  .reader-prose h3 {
-    page-break-after: avoid;
-    break-after: avoid;
-  }
-}
 

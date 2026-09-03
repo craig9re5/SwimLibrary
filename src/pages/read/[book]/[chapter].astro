@@ -212,6 +212,7 @@ const stats = calculateReadingStats(chapter.body || "");
         </div>
 
         <button class="icon-button" type="button" data-theme-toggle aria-label="切换明暗主题">
+          <span class="theme-icon--monitor"><Icon name="monitor" size={18} /></span>
           <span class="theme-icon--moon"><Icon name="moon" size={18} /></span>
           <span class="theme-icon--sun"><Icon name="sun" size={18} /></span>
         </button>
@@ -292,7 +293,7 @@ const stats = calculateReadingStats(chapter.body || "");
               </span>
             </a>
           ) : (
-            <span />
+            <span class="reader-nav-link--placeholder" aria-hidden="true" />
           )
         }
         {
@@ -401,8 +402,10 @@ const stats = calculateReadingStats(chapter.body || "");
       };
 
       const readJson = (key, fallback) => {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
         try {
-          return JSON.parse(localStorage.getItem(key) || "") || fallback;
+          return JSON.parse(raw) ?? fallback;
         } catch {
           return fallback;
         }
@@ -553,13 +556,26 @@ const stats = calculateReadingStats(chapter.body || "");
         reader.onload = (event) => {
           try {
             const imported = JSON.parse(event.target.result);
+            if (!imported || typeof imported !== "object" || Array.isArray(imported)) {
+              throw new Error("Invalid structure");
+            }
+            if (imported.progress !== undefined && (typeof imported.progress !== "object" || Array.isArray(imported.progress) || imported.progress === null)) {
+              throw new Error("Invalid progress structure");
+            }
+            if (imported.favorites !== undefined && (!Array.isArray(imported.favorites) || imported.favorites.some((f) => typeof f !== "string"))) {
+              throw new Error("Invalid favorites structure");
+            }
+            if (imported.settings !== undefined && (typeof imported.settings !== "object" || Array.isArray(imported.settings) || imported.settings === null)) {
+              throw new Error("Invalid settings structure");
+            }
+
             if (imported.progress) localStorage.setItem(progressKey, JSON.stringify(imported.progress));
             if (imported.favorites) localStorage.setItem(favoritesKey, JSON.stringify(imported.favorites));
             if (imported.settings) localStorage.setItem(settingsKey, JSON.stringify(imported.settings));
             showToast("数据恢复成功，正在刷新...");
             setTimeout(() => window.location.reload(), 800);
           } catch (err) {
-            alert("导入失败：无效的 JSON 备份文件格式。");
+            alert("导入失败：无效的备份文件内容或格式错误。");
           }
         };
         reader.readAsText(file);

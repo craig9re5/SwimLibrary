@@ -82,10 +82,22 @@ import Icon from "./Icon.astro";
       str.replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
 
     const highlightMatches = (text, query) => {
-      if (!query.trim()) return escapeHtml(text);
-      const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`(${safeQuery})`, "gi");
-      return escapeHtml(text).replace(regex, "<mark class='search-match'>$1</mark>");
+      const q = (query || "").trim();
+      if (!q) return escapeHtml(text || "");
+      const safeQuery = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(safeQuery, "gi");
+
+      let html = "";
+      let lastIndex = 0;
+      let match;
+      const raw = text || "";
+      while ((match = regex.exec(raw)) !== null) {
+        html += escapeHtml(raw.slice(lastIndex, match.index));
+        html += `<mark class="search-match">${escapeHtml(match[0])}</mark>`;
+        lastIndex = regex.lastIndex;
+      }
+      html += escapeHtml(raw.slice(lastIndex));
+      return html;
     };
 
     const performSearch = (query) => {
@@ -180,8 +192,12 @@ import Icon from "./Icon.astro";
       });
     };
 
+    let debounceTimer = 0;
     input?.addEventListener("input", (e) => {
-      performSearch(e.target.value);
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        performSearch(e.target.value);
+      }, 160);
     });
 
     input?.addEventListener("keydown", (e) => {
@@ -212,7 +228,7 @@ import Icon from "./Icon.astro";
       }
     });
 
-    document.querySelectorAll("[data-search-open], a[href*='#library-search']").forEach((btn) => {
+    document.querySelectorAll("[data-search-open]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.preventDefault();
         openSearch();

@@ -211,8 +211,10 @@ const visualBooks = [
       let activeFilter = "all";
 
       const readJson = (key, fallback) => {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
         try {
-          return JSON.parse(localStorage.getItem(key) || "") || fallback;
+          return JSON.parse(raw) ?? fallback;
         } catch {
           return fallback;
         }
@@ -247,6 +249,8 @@ const visualBooks = [
         if (!item) return;
         const value = Math.round(item.progress || 0);
         card.dataset.hasProgress = "true";
+        const progressEl = card.querySelector(".book-card__progress");
+        if (progressEl) progressEl.setAttribute("aria-valuenow", String(value));
         card.querySelector("[data-card-progress]").style.setProperty("--progress", value + "%");
         card.querySelector("[data-card-progress-value]").textContent = value + "%";
       });

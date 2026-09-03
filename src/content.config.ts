@@ -2,27 +2,10 @@ import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 
+import { inkContrastIsSafe } from "./lib/color";
+
 const entrySegments = (entry: string) => entry.replaceAll("\\", "/").split("/");
 const withoutExtension = (filename: string) => filename.replace(/\.[^.]+$/, "");
-
-const channel = (value: number) => {
-  const srgb = value / 255;
-  return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
-};
-
-const relativeLuminance = (hex: string) => {
-  const [r, g, b] = [1, 3, 5].map((index) =>
-    channel(parseInt(hex.slice(index, index + 2), 16)),
-  );
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-};
-
-// 封面墨色只有奶白 #fff8e9 与深墨 #251e15 两种：
-// L ≤ 0.1706 时奶白达标，L ≥ 0.2369 时深墨达标，中间是两者都不达标的死区。
-const inkContrastIsSafe = (hex: string) => {
-  const luminance = relativeLuminance(hex);
-  return !(luminance > 0.1706 && luminance < 0.2369);
-};
 
 const books = defineCollection({
   loader: glob({

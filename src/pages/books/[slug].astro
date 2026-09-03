@@ -43,13 +43,6 @@ const updatedLabel = new Intl.DateTimeFormat("zh-CN", {
 }).format(book.data.updated);
 
 const bookStats = calculateBookStats(chapters);
-
-// Prepare lightweight chapter content data for client-side EPUB/Markdown export
-const exportChaptersData = chapters.map((c) => ({
-  title: c.data.title,
-  order: c.data.order,
-  body: c.body || "",
-}));
 ---
 
 <BaseLayout title={book.data.title} description={book.data.summary}>
@@ -167,47 +160,43 @@ const exportChaptersData = chapters.map((c) => ({
     </div>
   </main>
 
-  <script
-    is:inline
-    define:vars={{
-      baseUrl: import.meta.env.BASE_URL,
-      bookTitle: book.data.title,
-      bookAuthor: book.data.author,
-      bookSummary: book.data.summary,
-      bookSlug: book.data.slug,
-      chaptersData: exportChaptersData,
-    }}
-  >
-    (() => {
-      const progressKey = "shiyue-progress";
-      const favoritesKey = "shiyue-favorites";
-      const readJson = (key, fallback) => {
-        try {
-          return JSON.parse(localStorage.getItem(key) || "") || fallback;
-        } catch {
-          return fallback;
-        }
-      };
+  <script>
+    import { generateEpub } from "../../lib/epub";
+    import { withBase } from "../../lib/paths";
 
-      const readButton = document.querySelector("[data-primary-read]");
-      const slug = readButton.dataset.bookSlug;
+    const progressKey = "shiyue-progress";
+    const favoritesKey = "shiyue-favorites";
+    const readJson = (key: string, fallback: any) => {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      try {
+        return JSON.parse(raw) ?? fallback;
+      } catch {
+        return fallback;
+      }
+    };
+
+    const readButton = document.querySelector<HTMLAnchorElement>("[data-primary-read]");
+    const slug = readButton?.dataset.bookSlug;
+    if (slug) {
       const progress = readJson(progressKey, {});
       const saved = progress[slug];
 
-      if (saved?.href) {
-        readButton.href = baseUrl + String(saved.href).replace(/^\/+/, "");
-        readButton.querySelector("[data-primary-read-label]").textContent =
-          "继续阅读 · " + saved.chapterTitle;
+      if (saved?.href && readButton) {
+        readButton.href = withBase(saved.href);
+        const labelEl = readButton.querySelector("[data-primary-read-label]");
+        if (labelEl) labelEl.textContent = "继续阅读 · " + saved.chapterTitle;
       }
 
-      const favoriteButton = document.querySelector("[data-favorite-button]");
-      const favorites = new Set(readJson(favoritesKey, []));
+      const favoriteButton = document.querySelector<HTMLButtonElement>("[data-favorite-button]");
+      const favorites = new Set<string>(readJson(favoritesKey, []));
       const renderFavorite = () => {
+        if (!favoriteButton) return;
         const active = favorites.has(slug);
         favoriteButton.dataset.favorited = String(active);
         favoriteButton.setAttribute("aria-pressed", String(active));
-        favoriteButton.querySelector("[data-favorite-label]").textContent =
-          active ? "已收藏" : "收藏本书";
+        const label = favoriteButton.querySelector("[data-favorite-label]");
+        if (label) label.textContent = active ? "已收藏" : "收藏本书";
       };
 
       favoriteButton?.addEventListener("click", () => {
@@ -221,62 +210,92 @@ const exportChaptersData = chapters.map((c) => ({
 
       renderFavorite();
 
-      // --- Export Handlers ---
-      const exportEpubBtn = document.querySelector("[data-export-epub]");
-      const exportMdBtn = document.querySelector("[data-export-md]");
-      const printBtn = document.querySelector("[data-print-book]");
+      // --- Export Handlers (On-demand data fetching) ---
+      const exportEpubBtn = document.querySelector<HTMLButtonElement>("[data-export-epub]");
+      const exportMdBtn = document.querySelector<HTMLButtonElement>("[data-export-md]");
+      const printBtn = document.querySelector<HTMLButtonElement>("[data-print-book]");
+
+      interface ExportPayload {
+        title: string;
+        author: string;
+        summary: string;
+        slug: string;
+        chapters: Array<{
+          title: string;
+          order: number;
+          body: string;
+        }>;
+      }
+
+      let cachedExportData: ExportPayload | null = null;
+      const fetchExportData = async (): Promise<ExportPayload> => {
+        if (cachedExportData) return cachedExportData;
+        const res = await fetch(withBase(`api/books/${slug}/export.json`));
+        if (!res.ok) throw new Error("Failed to fetch export data");
+        cachedExportData = await res.json();
+        return cachedExportData!;
+      };
 
       // Export Markdown
-      exportMdBtn?.addEventListener("click", () => {
-        let mdContent = `# ${bookTitle}\n\n**作者**：${bookAuthor}\n\n**简介**：${bookSummary}\n\n---\n\n`;
-        chaptersData.forEach((ch, idx) => {
-          mdContent += `\n\n# 第 ${idx + 1} 章 ${ch.title}\n\n${ch.body}\n\n---\n`;
-        });
+      exportMdBtn?.addEventListener("click", async () => {
+        if (!exportMdBtn) return;
+        exportMdBtn.disabled = true;
+        const originalText = exportMdBtn.innerHTML;
+        exportMdBtn.innerHTML = "<span>正在导出...</span>";
 
-        const blob = new Blob([mdContent], { type: "text/markdown;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${bookTitle} - ${bookAuthor}.md`;
-        a.click();
-        URL.revokeObjectURL(url);
+        try {
+          const data = await fetchExportData();
+          let mdContent = `# ${data.title}\n\n**作者**：${data.author}\n\n**简介**：${data.summary}\n\n---\n\n`;
+          data.chapters.forEach((ch, idx) => {
+            mdContent += `\n\n# 第 ${idx + 1} 章 ${ch.title}\n\n${ch.body}\n\n---\n`;
+          });
+
+          const blob = new Blob([mdContent], { type: "text/markdown;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${data.title} - ${data.author}.md`;
+          a.click();
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          console.error("Markdown export failed:", err);
+          alert("下载 Markdown 失败，请检查网络连接后重试。");
+        } finally {
+          exportMdBtn.innerHTML = originalText;
+          exportMdBtn.disabled = false;
+        }
       });
 
-      // Export EPUB using Pure JS EPUB Generator
+      // Export EPUB using bundled generator
       exportEpubBtn?.addEventListener("click", async () => {
+        if (!exportEpubBtn) return;
         exportEpubBtn.disabled = true;
         const originalText = exportEpubBtn.innerHTML;
         exportEpubBtn.innerHTML = "<span>正在生成 EPUB...</span>";
 
         try {
-          // Dynamic import our pure TS/JS epub generator
-          const { generateEpub } = await import(`${baseUrl.replace(/\/+$/, "")}/src/lib/epub.ts?t=${Date.now()}`).catch(async () => {
-            // Fallback module resolver
-            return await import("../../lib/epub");
-          });
-
+          const data = await fetchExportData();
           const epubBytes = generateEpub({
-            title: bookTitle,
-            author: bookAuthor,
-            summary: bookSummary,
-            chapters: chaptersData.map((c, i) => ({
+            title: data.title,
+            author: data.author,
+            summary: data.summary,
+            chapters: data.chapters.map((c, i) => ({
               title: c.title,
-              order: i + 1,
+              order: c.order ?? i + 1,
               htmlContent: c.body,
             })),
           });
 
-          const blob = new Blob([epubBytes], { type: "application/epub+zip" });
+          const blob = new Blob([epubBytes as unknown as BlobPart], { type: "application/epub+zip" });
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `${bookTitle} - ${bookAuthor}.epub`;
+          a.download = `${data.title} - ${data.author}.epub`;
           a.click();
           URL.revokeObjectURL(url);
         } catch (err) {
           console.error("EPUB export failed:", err);
-          // Fallback to markdown download if module dynamic import fails
-          exportMdBtn?.click();
+          alert("生成 EPUB 失败，请重试。");
         } finally {
           exportEpubBtn.innerHTML = originalText;
           exportEpubBtn.disabled = false;
@@ -287,7 +306,7 @@ const exportChaptersData = chapters.map((c) => ({
       printBtn?.addEventListener("click", () => {
         window.print();
       });
-    })();
+    }
   </script>
 </BaseLayout>
 
