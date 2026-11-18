@@ -47,6 +47,7 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
+    <meta name="color-scheme" content={isAboutPage ? "dark" : "light dark"} />
     <meta name="theme-color" content={lightThemeColor} />
     {canonical && <link rel="canonical" href={canonical} />}
     <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg?v=4`} />
@@ -111,7 +112,7 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
   </head>
   <body class={bodyClass}>
     <a class="skip-link" href="#main-content">跳到正文</a>
-    {!hideChrome && <Header overlay={overlayHeader} />}
+    {!hideChrome && <Header overlay={overlayHeader} hideThemeToggle={isAboutPage} />}
     <slot />
     {!hideChrome && !hideFooter && <Footer />}
     <SearchModal />

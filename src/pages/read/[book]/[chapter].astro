@@ -200,7 +200,7 @@ const stats = calculateReadingStats(chapter.body || "");
                   <label class="reader-data-btn reader-data-btn--file">
                     <Icon name="upload" size={14} />
                     <span>导入备份记录</span>
-                    <input type="file" accept=".json" data-import-backup hidden />
+                    <input type="file" accept=".json" data-import-backup class="sr-only" />
                   </label>
                   <button class="reader-data-btn reader-data-btn--danger" type="button" data-reset-progress>
                     <span>清除本站阅读记录</span>
@@ -346,7 +346,7 @@ const stats = calculateReadingStats(chapter.body || "");
                 <ol class="reader-toc__sections">
                   {sections.map((section) => (
                     <li class:list={[{ "reader-toc__sec--sub": section.depth === 3 }]}>
-                      <a href={`#${section.slug}`} data-dialog-close>
+                      <a href={`#${section.slug}`} data-section-link={section.slug} data-dialog-close>
                         {section.text}
                       </a>
                     </li>
@@ -427,6 +427,15 @@ const stats = calculateReadingStats(chapter.body || "");
         Math.max(26, Math.round(settings.width > 42 ? settings.width / 2 : settings.width)),
       );
 
+      const syncSliderProgress = (el) => {
+        if (!el) return;
+        const min = Number(el.min) || 0;
+        const max = Number(el.max) || 100;
+        const val = Number(el.value) || 0;
+        const pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
+        el.style.setProperty("--slider-progress", pct + "%");
+      };
+
       const applySettings = () => {
         shell.style.setProperty("--reader-font-size", settings.fontSize + "px");
         shell.style.setProperty("--reader-line-height", String(settings.lineHeight));
@@ -434,6 +443,12 @@ const stats = calculateReadingStats(chapter.body || "");
         fontInput.value = settings.fontSize;
         lineInput.value = settings.lineHeight;
         widthInput.value = settings.width;
+        fontInput.setAttribute("aria-valuetext", settings.fontSize + " 像素");
+        lineInput.setAttribute("aria-valuetext", "行高 " + Number(settings.lineHeight).toFixed(2));
+        widthInput.setAttribute("aria-valuetext", "每行 " + settings.width + " 字");
+        syncSliderProgress(fontInput);
+        syncSliderProgress(lineInput);
+        syncSliderProgress(widthInput);
         document.querySelector("[data-font-size-output]").textContent =
           settings.fontSize + " px";
         document.querySelector("[data-line-height-output]").textContent =
@@ -469,8 +484,19 @@ const stats = calculateReadingStats(chapter.body || "");
       // --- Zen Focus Mode ---
       const toggleZenMode = (forcedState) => {
         const isZen = forcedState !== undefined ? forcedState : !document.body.classList.contains("zen-mode");
+        const anchorEl = paragraphs[getActiveParagraphIndex()];
+        const prevTop = anchorEl ? anchorEl.getBoundingClientRect().top : null;
+
         document.body.classList.toggle("zen-mode", isZen);
         if (zenExitWrap) zenExitWrap.hidden = !isZen;
+
+        measure();
+        if (anchorEl && prevTop !== null && window.scrollY > 20) {
+          const nextTop = anchorEl.getBoundingClientRect().top;
+          window.scrollBy({ top: nextTop - prevTop, behavior: "auto" });
+        }
+        updateReadingState();
+
         if (isZen) {
           showToast("已开启专注模式（按 Z 或 ESC 退出）", 2000);
         }
@@ -543,7 +569,7 @@ const stats = calculateReadingStats(chapter.body || "");
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `swim-library-backup-${new Date().toISOString().split("T")[0]}.json`;
+        a.download = `oyogu-backup-${new Date().toISOString().split("T")[0]}.json`;
         a.click();
         URL.revokeObjectURL(url);
         showToast("已成功导出备份文件！");
@@ -602,9 +628,17 @@ const stats = calculateReadingStats(chapter.body || "");
         button.addEventListener("click", () => button.closest("dialog")?.close());
       });
 
-      document.querySelectorAll("dialog").forEach((dialog) => {
-        dialog.addEventListener("click", (event) => {
-          if (event.target === dialog) dialog.close();
+      const isOutsideDialog = (e, dlg) => {
+        const r = dlg.getBoundingClientRect();
+        return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+      };
+      document.querySelectorAll("#toc-dialog").forEach((dialog) => {
+        let pressedOutside = false;
+        dialog.addEventListener("pointerdown", (event) => {
+          pressedOutside = isOutsideDialog(event, dialog);
+        });
+        dialog.addEventListener("pointerup", (event) => {
+          if (pressedOutside && isOutsideDialog(event, dialog)) dialog.close();
         });
       });
 
@@ -616,11 +650,22 @@ const stats = calculateReadingStats(chapter.body || "");
         el.dataset.paraIdx = String(index);
       });
 
-      // Cache geometry
+      // Cache geometry & heading offsets for bidirectional TOC scrollspy
+      const headingElements = Array.from(prose?.querySelectorAll("h2, h3") || []);
+      const sectionLinks = Array.from(document.querySelectorAll("[data-section-link]"));
+      let headingOffsets = [];
+      let lastActiveSectionId = "";
+
       const geom = { top: 0, height: 1 };
       const measure = () => {
         geom.top = article.getBoundingClientRect().top + window.scrollY;
         geom.height = Math.max(1, article.offsetHeight);
+        headingOffsets = headingElements
+          .map((h) => ({
+            id: h.getAttribute("id") || "",
+            top: h.getBoundingClientRect().top + window.scrollY,
+          }))
+          .filter((item) => Boolean(item.id));
       };
 
       // Progress flush throttling
@@ -691,6 +736,30 @@ const stats = calculateReadingStats(chapter.body || "");
 
         header.dataset.scrolled = String(y > 20);
 
+        if (headingOffsets.length > 0) {
+          const threshold = y + 120;
+          let activeId = headingOffsets[0].id;
+          for (let i = 0; i < headingOffsets.length; i++) {
+            if (headingOffsets[i].top <= threshold) {
+              activeId = headingOffsets[i].id;
+            } else {
+              break;
+            }
+          }
+          if (activeId !== lastActiveSectionId) {
+            lastActiveSectionId = activeId;
+            sectionLinks.forEach((link) => {
+              const match = link.dataset.sectionLink === activeId;
+              link.classList.toggle("is-active", match);
+              if (match) {
+                link.setAttribute("aria-current", "location");
+              } else {
+                link.removeAttribute("aria-current");
+              }
+            });
+          }
+        }
+
         saveProgress(chapterProgress, overallProgress);
         ticking = false;
       };
@@ -716,27 +785,6 @@ const stats = calculateReadingStats(chapter.body || "");
           measure();
           updateReadingState();
         }).observe(article);
-      }
-
-      // --- Heading in-view tracking for Table of Contents ---
-      const headingElements = Array.from(prose?.querySelectorAll("h2, h3") || []);
-      if ("IntersectionObserver" in window && headingElements.length > 0) {
-        const headingObserver = new IntersectionObserver(
-          (entries) => {
-            entries.forEach((entry) => {
-              if (entry.isIntersecting) {
-                const id = entry.target.getAttribute("id");
-                if (id) {
-                  document.querySelectorAll("[data-section-link]").forEach((link) => {
-                    link.classList.toggle("is-active", link.dataset.sectionLink === id);
-                  });
-                }
-              }
-            });
-          },
-          { rootMargin: "-10% 0px -70% 0px" },
-        );
-        headingElements.forEach((h) => headingObserver.observe(h));
       }
 
       // Keyboard Shortcuts

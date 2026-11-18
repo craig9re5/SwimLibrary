@@ -5,9 +5,10 @@ import { siteConfig } from "../site.config";
 
 interface Props {
   overlay?: boolean;
+  hideThemeToggle?: boolean;
 }
 
-const { overlay = false } = Astro.props;
+const { overlay = false, hideThemeToggle = false } = Astro.props;
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
@@ -31,11 +32,13 @@ const isAbout = currentPath === normalizePath(withBase("about/"));
       <button class="icon-button" type="button" data-search-open aria-label="搜索馆藏与章节 (Cmd+K)">
         <Icon name="search" size={19} />
       </button>
-      <button class="icon-button" type="button" data-theme-toggle aria-label="切换主题模式">
-        <span class="theme-icon--monitor"><Icon name="monitor" size={19} /></span>
-        <span class="theme-icon--moon"><Icon name="moon" size={19} /></span>
-        <span class="theme-icon--sun"><Icon name="sun" size={19} /></span>
-      </button>
+      {!hideThemeToggle && (
+        <button class="icon-button" type="button" data-theme-toggle aria-label="切换主题模式">
+          <span class="theme-icon--monitor"><Icon name="monitor" size={19} /></span>
+          <span class="theme-icon--moon"><Icon name="moon" size={19} /></span>
+          <span class="theme-icon--sun"><Icon name="sun" size={19} /></span>
+        </button>
+      )}
     </nav>
   </div>
 </header>

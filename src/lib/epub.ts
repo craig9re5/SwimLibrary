@@ -362,6 +362,47 @@ function escapeXml(unsafe: string): string {
     .replace(/'/g, "&apos;");
 }
 
+function formatInlineMarkdown(escaped: string): string {
+  return escaped
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>");
+}
+
+export function renderChapterPrintHtml(content: string): string {
+  if (content.includes("<p>") || content.includes("<h")) {
+    return content;
+  }
+
+  return content
+    .split(/\n\n+/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map((block) => {
+      if (/^(?:---|\*\*\*|___)$/.test(block)) return "<hr />";
+      if (block.startsWith("# ")) return `<h3>${formatInlineMarkdown(escapeXml(block.slice(2)))}</h3>`;
+      if (block.startsWith("## ")) return `<h3>${formatInlineMarkdown(escapeXml(block.slice(3)))}</h3>`;
+      if (block.startsWith("### ")) return `<h4>${formatInlineMarkdown(escapeXml(block.slice(4)))}</h4>`;
+      if (block.startsWith("> ")) {
+        const quoteLines = block
+          .split(/\n/)
+          .map((line) => line.replace(/^>\s?/, "").trim())
+          .filter(Boolean)
+          .map((line) => `<p>${formatInlineMarkdown(escapeXml(line))}</p>`)
+          .join("");
+        return `<blockquote>${quoteLines}</blockquote>`;
+      }
+      const lines = block.split(/\n/);
+      if (lines.every((l) => /^[-*]\s+/.test(l.trim()))) {
+        const items = lines
+          .map((l) => `<li>${formatInlineMarkdown(escapeXml(l.trim().replace(/^[-*]\s+/, "")))}</li>`)
+          .join("");
+        return `<ul>${items}</ul>`;
+      }
+      return `<p>${formatInlineMarkdown(escapeXml(block))}</p>`;
+    })
+    .join("\n");
+}
+
 function wrapInXhtmlParagraphs(content: string): string {
   if (content.includes("<p>") || content.includes("<h")) {
     // If it's already HTML, ensure XML self-closing tags

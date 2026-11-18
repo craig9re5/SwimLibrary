@@ -1,4 +1,5 @@
 ---
+import { render } from "astro:content";
 import BookCover from "../../components/BookCover.astro";
 import Icon from "../../components/Icon.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
@@ -32,6 +33,8 @@ export async function getStaticPaths() {
 }
 
 const { book, chapters } = Astro.props;
+const { Content: BookNotes } = await render(book);
+const hasNotes = Boolean(book.body?.trim());
 const firstChapter = chapters[0];
 const firstChapterHref = firstChapter
   ? withBase(`read/${book.data.slug}/${getChapterSlug(firstChapter)}/`)
@@ -73,6 +76,11 @@ const bookStats = calculateBookStats(chapters);
         <h1 class="reveal reveal--2">{book.data.title}</h1>
         <p class="book-detail__author reveal reveal--2">{book.data.author}</p>
         <p class="book-detail__summary reveal reveal--3">{book.data.summary}</p>
+        {hasNotes && (
+          <div class="book-detail__notes reveal reveal--3">
+            <BookNotes />
+          </div>
+        )}
 
         <div class="book-detail__actions reveal reveal--3">
           <a
@@ -158,10 +166,12 @@ const bookStats = calculateBookStats(chapters);
         </ol>
       </section>
     </div>
+
+    <article id="full-book-print-root" class="shell full-book-print" aria-hidden="true"></article>
   </main>
 
   <script>
-    import { generateEpub } from "../../lib/epub";
+    import { generateEpub, renderChapterPrintHtml } from "../../lib/epub";
     import { withBase } from "../../lib/paths";
 
     const progressKey = "shiyue-progress";
@@ -175,6 +185,9 @@ const bookStats = calculateBookStats(chapters);
         return fallback;
       }
     };
+
+    const escapeHtml = (s: string) =>
+      (s || "").replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m] || m));
 
     const readButton = document.querySelector<HTMLAnchorElement>("[data-primary-read]");
     const slug = readButton?.dataset.bookSlug;
@@ -214,6 +227,7 @@ const bookStats = calculateBookStats(chapters);
       const exportEpubBtn = document.querySelector<HTMLButtonElement>("[data-export-epub]");
       const exportMdBtn = document.querySelector<HTMLButtonElement>("[data-export-md]");
       const printBtn = document.querySelector<HTMLButtonElement>("[data-print-book]");
+      const printRoot = document.getElementById("full-book-print-root");
 
       interface ExportPayload {
         title: string;
@@ -228,6 +242,8 @@ const bookStats = calculateBookStats(chapters);
       }
 
       let cachedExportData: ExportPayload | null = null;
+      let printRendered = false;
+
       const fetchExportData = async (): Promise<ExportPayload> => {
         if (cachedExportData) return cachedExportData;
         const res = await fetch(withBase(`api/books/${slug}/export.json`));
@@ -302,11 +318,64 @@ const bookStats = calculateBookStats(chapters);
         }
       });
 
-      // Print / Save as PDF
-      printBtn?.addEventListener("click", () => {
-        window.print();
+      window.addEventListener("afterprint", () => {
+        document.body.classList.remove("is-printing-full-book");
+      });
+
+      // Full-Book Print / Save as PDF
+      printBtn?.addEventListener("click", async () => {
+        if (!printBtn || !printRoot) return;
+        printBtn.disabled = true;
+        const originalText = printBtn.innerHTML;
+        printBtn.innerHTML = "<span>正在排版全书...</span>";
+
+        try {
+          const data = await fetchExportData();
+          if (!printRendered) {
+            const tocHtml = data.chapters
+              .map((ch) => `<li>${escapeHtml(ch.title)}</li>`)
+              .join("");
+            const chaptersHtml = data.chapters
+              .map(
+                (ch) => `
+                <section class="full-book-print__chapter">
+                  <h2>${escapeHtml(ch.title)}</h2>
+                  ${renderChapterPrintHtml(ch.body)}
+                </section>`,
+              )
+              .join("");
+
+            printRoot.innerHTML = `
+              <header class="full-book-print__cover">
+                <h1>${escapeHtml(data.title)}</h1>
+                <p class="full-book-print__author">${escapeHtml(data.author)}</p>
+                <p class="full-book-print__summary">${escapeHtml(data.summary)}</p>
+              </header>
+              <nav class="full-book-print__toc">
+                <h2>目录</h2>
+                <ol>${tocHtml}</ol>
+              </nav>
+              ${chaptersHtml}
+            `;
+            printRendered = true;
+          }
+
+          document.body.classList.add("is-printing-full-book");
+          printBtn.innerHTML = originalText;
+          printBtn.disabled = false;
+
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              window.print();
+            });
+          });
+        } catch (err) {
+          console.error("Full-book print failed:", err);
+          printBtn.innerHTML = originalText;
+          printBtn.disabled = false;
+          alert("加载全书打印排版失败，请检查网络连接后重试。");
+        }
       });
     }
   </script>
 </BaseLayout>
-
