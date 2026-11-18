@@ -1,4 +1,4 @@
-const CACHE_NAME = "swim-library-v1";
+const CACHE_NAME = "oyogu-library-v2";
 const PRECACHE_ASSETS = [
   "./",
   "./favicon.svg",

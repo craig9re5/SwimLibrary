@@ -48,7 +48,7 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
           src={swimCover}
           alt="《Swim》翻唱封面，五位角色站在蓝天与白云前"
           widths={[640, 960, 1280, 1600]}
-          sizes="(max-width: 1219px) min(calc(100vw - 40px), 760px), min(47vw, 900px)"
+          sizes="(max-width: 1024px) min(calc(100vw - 40px), 760px), min(47vw, 900px)"
           format="webp"
           quality={86}
           priority
@@ -345,7 +345,7 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
     display: grid;
     width: min(100%, 1760px);
     margin: auto;
-    grid-template-columns: minmax(520px, 1.04fr) minmax(500px, 1fr);
+    grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr);
     align-items: center;
     gap: clamp(40px, 3.5vw, 72px);
   }
@@ -659,7 +659,7 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
     }
   }
 
-  @media (max-width: 1219px) {
+  @media (max-width: 1024px) {
     .swim-scene {
       overflow: clip;
       padding:
@@ -702,7 +702,7 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
     }
   }
 
-  @media (max-width: 520px) {
+  @media (max-width: 768px) {
     .swim-scene {
       padding:
         calc(var(--header-height) + 28px)
@@ -781,7 +781,7 @@ const initialLyricId = `swim-lyric-${initialLyricIndex + 1}`;
     }
   }
 
-  @media (max-height: 620px) and (min-width: 1220px) {
+  @media (max-height: 620px) and (min-width: 1025px) {
     .swim-scene {
       align-items: start;
       padding-top: calc(var(--header-height) + 22px);

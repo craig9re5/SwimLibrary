@@ -5,8 +5,8 @@ import { siteConfig } from "../site.config";
 ---
 
 <BaseLayout
-  title="关于 · Swim"
-  description="在《Swim》的蓝色里，留下一小段关于本站之外的话。"
+  title={`关于 · ${siteConfig.englishName}`}
+  description={`在《SWIM》与深蓝的字句里，留下一小段关于${siteConfig.name}的话。`}
   overlayHeader
   bodyClass="about-page"
 >
@@ -72,16 +72,13 @@ import { siteConfig } from "../site.config";
   .about-note {
     position: relative;
     z-index: 1;
-    padding:
-      clamp(56px, 9vh, 104px)
-      clamp(24px, 5.5vw, 96px)
-      clamp(60px, 10vh, 118px);
+    padding-block: clamp(56px, 9vh, 104px) clamp(60px, 10vh, 118px);
     border-top: 1px solid rgba(219, 228, 242, 0.1);
     background: #030817;
   }
 
   .about-note__inner {
-    width: min(100%, 1400px);
+    width: var(--shell);
     margin-inline: auto;
   }
 
@@ -143,7 +140,7 @@ import { siteConfig } from "../site.config";
   .about-note__card {
     padding: 20px 22px;
     border: 1px solid rgba(222, 235, 255, 0.12);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(12px);
     transition:
@@ -174,16 +171,10 @@ import { siteConfig } from "../site.config";
     line-height: 1.65;
   }
 
-  @media (max-width: 900px) {
+  @media (max-width: 1024px) {
     .about-note__grid {
       grid-template-columns: 1fr;
       gap: 36px;
-    }
-  }
-
-  @media (max-width: 520px) {
-    .about-note {
-      padding-inline: 20px;
     }
   }
 </style>

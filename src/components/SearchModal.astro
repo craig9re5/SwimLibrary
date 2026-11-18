@@ -4,25 +4,34 @@ import Icon from "./Icon.astro";
 
 <dialog id="search-dialog" class="search-dialog" aria-labelledby="search-dialog-title">
   <div class="search-modal">
+    <h2 id="search-dialog-title" class="sr-only">全站搜索</h2>
     <div class="search-modal__header">
-      <span class="search-modal__icon">
+      <span class="search-modal__icon" aria-hidden="true">
         <Icon name="search" size={20} />
       </span>
+      <label for="search-input" class="sr-only">搜索全站图书、章节或段落文字</label>
       <input
         id="search-input"
         class="search-modal__input"
         type="search"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded="false"
+        aria-controls="search-results-list"
         placeholder="搜索全站图书、章节或段落文字... (Cmd+K / /)"
         autocomplete="off"
         spellcheck="false"
+        autofocus
       />
       <div class="search-modal__badges">
-        <kbd class="kbd-badge">ESC</kbd>
+        <kbd class="kbd-badge" data-search-kbd>ESC</kbd>
         <button class="icon-button search-modal__close" type="button" data-search-close aria-label="关闭搜索">
           <Icon name="close" size={16} />
         </button>
       </div>
     </div>
+
+    <p id="search-status" class="sr-only" aria-live="polite"></p>
 
     <div class="search-modal__body" id="search-results-container">
       <div class="search-modal__empty" id="search-empty-state">
@@ -33,7 +42,7 @@ import Icon from "./Icon.astro";
           <span><kbd class="kbd-badge">ESC</kbd> 关闭</span>
         </div>
       </div>
-      <ul class="search-results-list" id="search-results-list" role="listbox" hidden></ul>
+      <ul class="search-results-list" id="search-results-list" role="listbox" aria-label="搜索结果" hidden></ul>
     </div>
   </div>
 </dialog>
@@ -46,7 +55,9 @@ import Icon from "./Icon.astro";
     const input = document.getElementById("search-input");
     const resultsList = document.getElementById("search-results-list");
     const emptyState = document.getElementById("search-empty-state");
+    const statusEl = document.getElementById("search-status");
     let activeIndex = -1;
+    let lastCompositionEndAt = null;
 
     const loadIndex = async () => {
       if (searchIndex || isLoading) return;
@@ -64,17 +75,32 @@ import Icon from "./Icon.astro";
       }
     };
 
+    const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
+    const modKey = isMac ? "⌘K" : "Ctrl+K";
+    if (input) {
+      input.placeholder = `搜索全站图书、章节或段落文字... (${modKey} / /)`;
+    }
+    document.querySelectorAll("[data-search-open]").forEach((btn) => {
+      btn.setAttribute("title", `全站搜索 (${modKey})`);
+      btn.setAttribute("aria-label", `全站搜索 (${modKey})`);
+    });
+
     const openSearch = () => {
       if (!dialog) return;
-      dialog.showModal();
+      if (!dialog.open) dialog.showModal();
       loadIndex();
-      setTimeout(() => input?.focus(), 50);
+      input?.focus();
     };
 
     const closeSearch = () => {
       if (!dialog) return;
-      dialog.close();
-      if (input) input.value = "";
+      if (dialog.open) dialog.close();
+      if (input) {
+        input.value = "";
+        input.setAttribute("aria-expanded", "false");
+        input.removeAttribute("aria-activedescendant");
+      }
+      if (statusEl) statusEl.textContent = "";
       renderResults([]);
     };
 
@@ -124,7 +150,6 @@ import Icon from "./Icon.astro";
 
         if (textIndex >= 0) {
           score += 10;
-          // Extract a 100-character window around the matched keyword
           const start = Math.max(0, textIndex - 35);
           const end = Math.min(item.plainText.length, textIndex + q.length + 65);
           snippet = (start > 0 ? "..." : "") + item.plainText.slice(start, end) + (end < item.plainText.length ? "..." : "");
@@ -142,10 +167,15 @@ import Icon from "./Icon.astro";
     const renderResults = (results, query = "") => {
       if (!resultsList || !emptyState) return;
       activeIndex = -1;
+      input?.removeAttribute("aria-activedescendant");
 
       if (!results || results.length === 0) {
         resultsList.hidden = true;
         emptyState.hidden = false;
+        input?.setAttribute("aria-expanded", "false");
+        if (statusEl) {
+          statusEl.textContent = query.trim() ? `未找到关于 ${query} 的内容` : "";
+        }
         emptyState.innerHTML = query.trim()
           ? `<p class="search-modal__no-result">未找到关于 “<strong>${escapeHtml(query)}</strong>” 的内容</p>`
           : `<p>输入关键词开始检索全站馆藏与正文段落</p>
@@ -159,21 +189,26 @@ import Icon from "./Icon.astro";
 
       emptyState.hidden = true;
       resultsList.hidden = false;
+      input?.setAttribute("aria-expanded", "true");
+      if (statusEl) {
+        statusEl.textContent = `找到 ${results.length} 条相关章节结果`;
+      }
 
       resultsList.innerHTML = results
         .map((item, index) => {
           const href = (baseUrl.replace(/\/+$/, "") + `/read/${item.bookSlug}/${item.chapterSlug}/`).replace(/^\/\//, "/");
+          const styleAttr = item.bookAccent ? ` style="--item-accent: ${escapeHtml(item.bookAccent)}"` : "";
           return `
-            <li class="search-result-item" role="option" data-index="${index}" data-href="${href}">
-              <a href="${href}" class="search-result-link">
+            <li id="search-option-${index}" class="search-result-item" role="option" aria-selected="false" data-index="${index}" data-href="${href}">
+              <div class="search-result-link">
                 <div class="search-result-top">
-                  <span class="search-result-book" style="color: ${item.bookAccent || 'inherit'}">${escapeHtml(item.bookTitle)}</span>
-                  <span class="search-result-divider">/</span>
+                  <span class="search-result-book"${styleAttr}>${escapeHtml(item.bookTitle)}</span>
+                  <span class="search-result-divider" aria-hidden="true">/</span>
                   <span class="search-result-title">${highlightMatches(item.chapterTitle, query)}</span>
                   <span class="search-result-meta">${item.readingTimeMinutes} 分钟</span>
                 </div>
                 <p class="search-result-snippet">${highlightMatches(item.snippet, query)}</p>
-              </a>
+              </div>
             </li>
           `;
         })
@@ -182,15 +217,45 @@ import Icon from "./Icon.astro";
 
     const updateActiveItem = () => {
       const items = resultsList?.querySelectorAll(".search-result-item");
-      if (!items || items.length === 0) return;
+      if (!items || items.length === 0) {
+        input?.removeAttribute("aria-activedescendant");
+        return;
+      }
       items.forEach((el, idx) => {
         const isActive = idx === activeIndex;
         el.classList.toggle("is-active", isActive);
+        el.setAttribute("aria-selected", String(isActive));
         if (isActive) {
+          input?.setAttribute("aria-activedescendant", el.id);
           el.scrollIntoView({ block: "nearest" });
         }
       });
+      if (activeIndex < 0) {
+        input?.removeAttribute("aria-activedescendant");
+      }
     };
+
+    resultsList?.addEventListener("click", (e) => {
+      const item = e.target.closest?.(".search-result-item");
+      const href = item?.dataset?.href;
+      if (!href) return;
+      if (e.metaKey || e.ctrlKey) {
+        window.open(href, "_blank", "noopener");
+      } else {
+        window.location.href = href;
+      }
+    });
+
+    resultsList?.addEventListener("auxclick", (e) => {
+      if (e.button !== 1) return;
+      const item = e.target.closest?.(".search-result-item");
+      const href = item?.dataset?.href;
+      if (href) window.open(href, "_blank", "noopener");
+    });
+
+    input?.addEventListener("compositionend", (e) => {
+      lastCompositionEndAt = e.timeStamp;
+    });
 
     let debounceTimer = 0;
     input?.addEventListener("input", (e) => {
@@ -200,17 +265,29 @@ import Icon from "./Icon.astro";
       }, 160);
     });
 
+    const isImeComposing = (e) =>
+      Boolean(e.isComposing) ||
+      (lastCompositionEndAt !== null && Math.abs(e.timeStamp - lastCompositionEndAt) < 50);
+
     input?.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeSearch();
+        return;
+      }
+
       const items = resultsList?.querySelectorAll(".search-result-item");
       const count = items?.length || 0;
 
       if (e.key === "ArrowDown") {
+        if (isImeComposing(e)) return;
         e.preventDefault();
         if (count > 0) {
           activeIndex = (activeIndex + 1) % count;
           updateActiveItem();
         }
       } else if (e.key === "ArrowUp") {
+        if (isImeComposing(e)) return;
         e.preventDefault();
         if (count > 0) {
           activeIndex = (activeIndex - 1 + count) % count;
@@ -218,6 +295,9 @@ import Icon from "./Icon.astro";
         }
       } else if (e.key === "Enter") {
         e.preventDefault();
+        if (isImeComposing(e)) {
+          return;
+        }
         if (activeIndex >= 0 && items && items[activeIndex]) {
           const href = items[activeIndex].dataset.href;
           if (href) window.location.href = href;
@@ -239,8 +319,18 @@ import Icon from "./Icon.astro";
       btn.addEventListener("click", closeSearch);
     });
 
-    dialog?.addEventListener("click", (e) => {
-      if (e.target === dialog) closeSearch();
+    const isOutsideDialog = (e, dlg) => {
+      const r = dlg.getBoundingClientRect();
+      return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    };
+    let pressedOutside = false;
+    dialog?.addEventListener("pointerdown", (e) => {
+      pressedOutside = isOutsideDialog(e, dialog);
+    });
+    dialog?.addEventListener("pointerup", (e) => {
+      if (pressedOutside && isOutsideDialog(e, dialog)) {
+        closeSearch();
+      }
     });
 
     document.addEventListener("keydown", (e) => {
