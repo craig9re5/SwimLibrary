@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { getAllBooks, getChaptersByBookSlug, getChapterSlug } from "../lib/library";
 import { cleanMarkdown, calculateReadingStats } from "../lib/wordCount";
+import { siteConfig } from "../site.config";
 
 export interface SearchIndexItem {
   id: string;
@@ -18,6 +19,15 @@ export interface SearchIndexItem {
 }
 
 export const GET: APIRoute = async () => {
+  if (siteConfig.temporarilyClosed) {
+    return new Response("[]", {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
   const books = await getAllBooks();
   const searchItems: SearchIndexItem[] = [];
 

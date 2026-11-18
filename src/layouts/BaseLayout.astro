@@ -23,15 +23,21 @@ const {
   bodyClass = "",
 } = Astro.props;
 
-const pageTitle = title
-  ? `${title} · ${siteConfig.name}`
-  : `${siteConfig.englishName} · ${siteConfig.name}`;
-const canonical = Astro.site
-  ? new URL(Astro.url.pathname, Astro.site).toString()
-  : undefined;
+const isClosed = siteConfig.temporarilyClosed;
+const pageTitle = isClosed
+  ? siteConfig.closedMessage
+  : title
+    ? `${title} · ${siteConfig.name}`
+    : `${siteConfig.englishName} · ${siteConfig.name}`;
+const pageDescription = isClosed ? siteConfig.closedMessage : description;
+const canonical =
+  !isClosed && Astro.site
+    ? new URL(Astro.url.pathname, Astro.site).toString()
+    : undefined;
 const bodyClasses = bodyClass.split(/\s+/);
-const isAboutPage = bodyClasses.includes("about-page");
-const isReaderPage = bodyClasses.includes("reader-body");
+const isAboutPage = !isClosed && bodyClasses.includes("about-page");
+const isReaderPage = !isClosed && bodyClasses.includes("reader-body");
+const effectiveBodyClass = isClosed ? "closed-body" : bodyClass;
 const lightThemeColor = isAboutPage
   ? "#030817"
   : isReaderPage
@@ -41,18 +47,19 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
 ---
 
 <!doctype html>
-<html lang="zh-CN" class:list={{ "fixed-dark-page": isAboutPage }}>
+<html lang={isClosed ? "en" : "zh-CN"} class:list={{ "fixed-dark-page": isAboutPage }}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <meta name="description" content={description} />
+    <meta name="description" content={pageDescription} />
+    {isClosed && <meta name="robots" content="noindex, nofollow" />}
     <meta name="color-scheme" content={isAboutPage ? "dark" : "light dark"} />
     <meta name="theme-color" content={lightThemeColor} />
     {canonical && <link rel="canonical" href={canonical} />}
     <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg?v=4`} />
     <link rel="apple-touch-icon" href={`${import.meta.env.BASE_URL}favicon.svg?v=4`} />
-    <link rel="manifest" href={`${import.meta.env.BASE_URL}manifest.webmanifest?v=4`} />
+    {!isClosed && <link rel="manifest" href={`${import.meta.env.BASE_URL}manifest.webmanifest?v=4`} />}
     <title>{pageTitle}</title>
     <script is:inline define:vars={{ lightThemeColor, darkThemeColor, baseUrl: import.meta.env.BASE_URL }}>
       (() => {
@@ -110,15 +117,25 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
       })();
     </script>
   </head>
-  <body class={bodyClass}>
-    <a class="skip-link" href="#main-content">跳到正文</a>
-    {!hideChrome && <Header overlay={overlayHeader} hideThemeToggle={isAboutPage} />}
-    <slot />
-    {!hideChrome && !hideFooter && <Footer />}
-    <SearchModal />
+  <body class={effectiveBodyClass}>
+    {
+      isClosed ? (
+        <main id="main-content" class="closed-page">
+          <h1 class="closed-page__title">{siteConfig.closedMessage}</h1>
+        </main>
+      ) : (
+        <>
+          <a class="skip-link" href="#main-content">跳到正文</a>
+          {!hideChrome && <Header overlay={overlayHeader} hideThemeToggle={isAboutPage} />}
+          <slot />
+          {!hideChrome && !hideFooter && <Footer />}
+          <SearchModal />
+        </>
+      )
+    }
 
 
-    <script is:inline define:vars={{ lightThemeColor, darkThemeColor }}>
+    {!isClosed && <script is:inline define:vars={{ lightThemeColor, darkThemeColor }}>
       (() => {
         const root = document.documentElement;
 
@@ -203,6 +220,6 @@ const darkThemeColor = isReaderPage ? "#111b2c" : "#0b1220";
           markReady();
         }
       })();
-    </script>
+    </script>}
   </body>
 </html>

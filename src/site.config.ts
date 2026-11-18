@@ -6,4 +6,7 @@ export const siteConfig = {
   author: "Craig Tateishi",
   tagline: "Designed for clarity and elegance.",
   github: "https://github.com/craig9re5",
+  // 设为 false 即可恢复全站正常访问与构建
+  temporarilyClosed: true as boolean,
+  closedMessage: "This site is temporarily closed.",
 } as const;
