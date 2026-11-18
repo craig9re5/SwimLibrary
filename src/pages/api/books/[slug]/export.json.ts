@@ -5,8 +5,12 @@ import {
   type BookEntry,
   type ChapterEntry,
 } from "../../../../lib/library";
+import { siteConfig } from "../../../../site.config";
 
 export async function getStaticPaths() {
+  if (siteConfig.temporarilyClosed) {
+    return [];
+  }
   const books = await getAllBooks();
   return Promise.all(
     books.map(async (book) => ({

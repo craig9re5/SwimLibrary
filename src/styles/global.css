@@ -48,7 +48,8 @@ body::before {
 
 body.about-page::before,
 body.reader-body::before,
-body.not-found-body::before {
+body.not-found-body::before,
+body.closed-body::before {
   display: none;
 }
 
@@ -56,8 +57,29 @@ body.about-page {
   color-scheme: dark;
 }
 
-body.not-found-body {
+body.not-found-body,
+body.closed-body {
   background: var(--paper);
+}
+
+.closed-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 24px;
+  text-align: center;
+}
+
+.closed-page__title {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: clamp(1rem, 1.5vw, 1.125rem);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.6;
+  text-wrap: balance;
 }
 
 dialog:modal {

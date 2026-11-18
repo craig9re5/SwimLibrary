@@ -12,6 +12,7 @@ import {
   type ChapterEntry,
 } from "../../lib/library";
 import { withBase } from "../../lib/paths";
+import { siteConfig } from "../../site.config";
 
 interface Props {
   book: BookEntry;
@@ -19,6 +20,9 @@ interface Props {
 }
 
 export async function getStaticPaths() {
+  if (siteConfig.temporarilyClosed) {
+    return [];
+  }
   const books = await getAllBooks();
 
   return Promise.all(

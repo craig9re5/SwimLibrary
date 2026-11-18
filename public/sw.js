@@ -1,4 +1,4 @@
-const CACHE_NAME = "oyogu-library-v2";
+const CACHE_NAME = "oyogu-library-v3";
 const PRECACHE_ASSETS = [
   "./",
   "./favicon.svg",
